@@ -49,27 +49,42 @@ void timer_set_interval(unsigned short top) {
 
 static char ints = 0;
 static char sec = 0;
-static signed char plladj_major = 0;
-static unsigned char plladj_minor = 0;
-static unsigned char plladj_phase = 0;
+static signed char tickadj_upper = 0;
+static unsigned char tickadj_lower = 0;
+static unsigned char tickadj_phase = 0;
 
-void print_time();
+unsigned long time_get_ns() {
+  return ints * NS_PER_INT + timer.counter * NS_PER_COUNT;
+}
 
-void adjust_pll() {
-  int x = (plladj_phase / 16 < plladj_minor / 16) ? 1 : 0;
-  int y = (plladj_phase % 16 < (plladj_minor % 16) + x);
+void print_time() {
+  unsigned long ns = time_get_ns();
+  debug("%d.%09ld\n", sec, ns);
+}
 
-  /* these actually give periods of DEF_TIMER_VAL + plladj_major and
-   * DEF_TIMER_VAL + plladj_major + 1 because the timer adds one. This means
-   * the avg. period is (DEF_TIMER_VAL + plladj_major + plladj_minor / 256)
+void tickadj_adjust() {
+  int x = (tickadj_phase / 16 < tickadj_lower / 16) ? 1 : 0;
+  int y = (tickadj_phase % 16 < (tickadj_lower % 16) + x);
+
+  /* these actually give periods of DEF_TIMER_VAL + tickadj_upper and
+   * DEF_TIMER_VAL + tickadj_upper + 1 because the timer adds one. This means
+   * the avg. period is (DEF_TIMER_VAL + tickadj_upper + tickadj_lower / 256)
    * and the frequency is 2MHz / that.
    */
   if (y) {
-    timer_set_interval(DEF_TIMER_VAL + plladj_major + 1);
+    timer_set_interval(DEF_TIMER_VAL + tickadj_upper + 1);
   } else {
-    timer_set_interval(DEF_TIMER_VAL + plladj_major);
+    timer_set_interval(DEF_TIMER_VAL + tickadj_upper);
   }
 }
+
+void tickadj_run() {
+  tickadj_phase++;
+  debug("PLL phase %d\n", tickadj_phase);
+  tickadj_adjust();
+}
+
+void second_int();
 
 void timer_int() {
   ints++;
@@ -77,49 +92,51 @@ void timer_int() {
   if (ints == INT_PER_SEC) {
     sec++;
     ints = 0;
+    second_int();
   }
 
-  plladj_phase++;
-  debug("PLL phase %d\n", plladj_phase);
-  adjust_pll();
-
+  tickadj_run();
   print_time();
 }
 
-void print_time() {
-  unsigned long ns = ints * NS_PER_INT + timer.counter * NS_PER_COUNT;
-  debug("%d.%09ld\n", sec, ns);
+void tickadj_set(signed char upper, unsigned char lower) {
+  tickadj_upper = upper;
+  tickadj_lower = lower;
+  debug("tickadj_upper = %d, tickadj_lower = %d\n", tickadj_upper, tickadj_lower);
+  tickadj_adjust();
 }
 
 /* Positive PPM will make the clock run fast, negative slow */
-void time_set_adj(signed short ppm) {
+void tickadj_set_ppm(signed short ppm) {
   /* Negation is a shortcut for computing 1 / ((1M + ppm) / 1M) that's accurate
    * out to a few hundred, which is all we want. From her on out the clock speed
    * will actually be *divided* by (1000000 + ppm) / 10000000
    */
 
   ppm = -ppm;
-  signed short gross = ppm  / 16;
+  signed short upper = ppm  / 16;
   unsigned char lower = ppm % 16;
 
   if (ppm < 0) {
-    gross--; /* lower is always interpreted as an addition, so e.g. -10/256
+    upper--; /* lower is always interpreted as an addition, so e.g. -10/256
                 will come up here as lower=246, gross=0. We need to make it
                 gross=-1 so that -1 + 246/256 == -10/256
               */
     lower--;
   }
 
-  if (gross < -128 || gross > 127) {
+  if (upper < -128 || upper > 127) {
     debug("time adjustment out of range!\n");
     exit(1);
   }
 
-  plladj_major = gross;
-  plladj_minor = lower;
+  tickadj_set(upper, lower);
+}
 
-  debug("plladj_major = %d, plladj_minor = %d\n", plladj_major, plladj_minor);
-  adjust_pll();
+static int i = 0;
+
+void second_int() {
+  debug("i = %d\n", i);
 }
 
 void main() {
@@ -127,14 +144,13 @@ void main() {
   timer.prediv = PREDIV;
   timer.top = DEF_TIMER_VAL - 1;
 
-  time_set_adj(50);
+  tickadj_set_ppm(1);
 
   debug("NS_PER_COUNT=%ld\nNS_PER_INT=%ld\nINT_PER_SEC=%ld\n",
       NS_PER_COUNT, NS_PER_INT, INT_PER_SEC);
 
 
-  for (int i = 0 ; i <= 32100000 ; i++) {
-    debug("i = %d\n", i);
+  for (i = 0 ; i <= 32100000 ; i++) {
     timer_clk();
   }
 }
