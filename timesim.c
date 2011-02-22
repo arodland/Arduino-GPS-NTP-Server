@@ -139,12 +139,30 @@ void second_int() {
   debug("i = %d\n", i);
 }
 
+static int gps_counter = 0;
+
+void gps_int();
+
+#define GPS_RATE 16000128L
+
+void gps_clk() {
+  gps_counter++;
+  if (gps_counter == GPS_RATE) {
+    gps_counter = 0;
+    gps_int();
+  }
+}
+
+void gps_int() {
+  unsigned long ns = time_get_ns();
+  debug("Got GPS int, ns=%ld\n", ns);
+}
+
 void main() {
   timer_init();
   timer.prediv = PREDIV;
-  timer.top = DEF_TIMER_VAL - 1;
 
-  tickadj_set_ppm(1);
+  tickadj_set_ppm(0);
 
   debug("NS_PER_COUNT=%ld\nNS_PER_INT=%ld\nINT_PER_SEC=%ld\n",
       NS_PER_COUNT, NS_PER_INT, INT_PER_SEC);
@@ -152,6 +170,7 @@ void main() {
 
   for (i = 0 ; i <= 32100000 ; i++) {
     timer_clk();
+    gps_clk();
   }
 }
 
