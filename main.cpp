@@ -4,7 +4,7 @@
 volatile static int32 i;
 
 void second_int() {
-  debug("i = "); debug_int(i); debug("\n");
+  debug_long(time_get_ns()); debug("\n");
 }
 
 void gps_int() {
@@ -27,7 +27,7 @@ int main() {
 
   timer_init();
 
-  tickadj_set_ppm(0);
+  tickadj_set_ppm(209);
 
   debug("NS_PER_COUNT="); debug_long(NS_PER_COUNT); debug("\n");
   debug("NS_PER_INT="); debug_long(NS_PER_INT); debug("\n");
@@ -40,9 +40,6 @@ int main() {
 #else
   for (;;) {
     i++;
-    if (i % 1000000 == 0) {
-      Serial.print("mainloop");
-    }
   }
 #endif
 }
