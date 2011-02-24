@@ -1,20 +1,28 @@
-ARDUINO=/usr/share/arduino
-CXX=g++
-AVRCXX=avr-g++
-CXXFLAGS=-DF_CPU=16000000
-CXXFLAGS_SIMULATE=-DSIMULATE
-CXXFLAGS_ARDUINO=-mmcu=atmega2560 -ffunction-sections -fdata-sections -I$(ARDUINO)/hardware/arduino/cores/arduino
+SIMCXX=g++
+SIMCXXFLAGS=-DF_CPU=16000000 -DSIMULATE
 
-all: timesim timesim.arduino
+SIMOBJS = sim/simmain.o sim/hwdep.o sim/timing.o
 
-timesim: sim/simmain.o sim/hwdep.o sim/timing.o
-	$(CXX) $(CXXFLAGS) $(CXXFLAGS_SIMULATE) -o timesim sim/simmain.o sim/hwdep.o sim/timing.o
+$(SIMOBJS) : *.h
 
-timesim.arduino: avr/main.o avr/hwdep.o avr/timing.o
-	$(AVRCXX) $(CXXFLAGS) $(CXXFLAGS_ARDUINO) -o timesim.arduino avr/main.o avr/hwdep.o avr/timing.o
+timesim: $(SIMOBJS)
+	$(SIMCXX) $(SIMCXXFLAGS) -o timesim $(SIMOBJS)
 
 sim/%.o : %.cpp
-	$(CXX) $(CXXFLAGS) $(CXXFLAGS_SIMULATE) -c -o $@ $<
+	$(SIMCXX) $(SIMCXXFLAGS) -c -o $@ $<
 
-avr/%.o : %.cpp
-	$(AVRCXX) $(CXXFLAGS) $(CXXFLAGS_ARDUINO) -c -o $@ $<
+sim: timesim
+
+ARDUINO_DIR=/usr/share/arduino
+TARGET=ntpserver
+MCU=atmega2560
+F_CPU=16000000
+ARDUINO_PORT=/dev/ttyACM0
+AVRDUDE_ARD_PROGRAMMER=arduino
+AVRDUDE_ARD_BAUDRATE=115200
+
+include $(ARDUINO_DIR)/Arduino.mk
+
+hex: build-cli/ntpserver.hex
+
+.PHONY: sim hex
