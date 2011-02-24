@@ -7,7 +7,7 @@ static unsigned char tickadj_lower = 0;
 static unsigned char tickadj_phase = 0;
 
 uint32 make_ns(unsigned char ints, unsigned short counter) {
-  return ints * NS_PER_INT + counter * NS_PER_COUNT;
+  return ints * NSPI(timer_get_interval()) + counter * NS_PER_COUNT;
 }
 
 uint32 time_get_ns() {
@@ -38,7 +38,7 @@ void tickadj_run() {
 
 extern void second_int();
 
-static int ledstate = 1;
+static int ledstate = 0;
 
 void timer_int() {
   ints++;
@@ -49,11 +49,9 @@ void timer_int() {
   }
 
 #ifndef SIMULATE
-  ledstate = digitalRead(13);
-  ledstate = ledstate ? 0 : 1;
-  digitalWrite(13, ledstate);  
+  ledstate++;
+  digitalWrite(13, (ledstate & 4) ? 1 : 0);
 #endif
-
   tickadj_run();
 }
 
@@ -65,23 +63,16 @@ void tickadj_set(signed char upper, unsigned char lower) {
   tickadj_adjust();
 }
 
-/* Positive PPM will make the clock run fast, negative slow */
-void tickadj_set_ppm(signed short ppm) {
-  /* Negation is a shortcut for computing 1 / ((1M + ppm) / 1M) that's accurate
-   * out to a few hundred, which is all we want. From her on out the clock speed
-   * will actually be *divided* by (1000000 + ppm) / 10000000
-   */
-
-  ppm = -ppm;
+void tickadj_set_clocks(signed short clocks) {
   char negative = 0;
-  if (ppm < 0) {
+  if (clocks < 0) {
     negative = 1;
-    ppm = 0 - ppm;
+    clocks = 0 - clocks;
   }
-
-  signed short upper = ppm  / 16;
-  unsigned char lower = (ppm % 16) * 16;
-
+  
+  signed char upper = clocks / 256;
+  unsigned char lower = clocks % 256;
+  
   if (negative) {
     upper = (0 - upper) - 1;
     lower = 0 - lower;
@@ -89,11 +80,21 @@ void tickadj_set_ppm(signed short ppm) {
        e.g. 1 + 16/256 is -2 + 240/256.
     */
   }
+  tickadj_set(upper, lower);
+}
 
-  if (upper < -128 || upper > 127) {
+/* Positive PPM will make the clock run fast, negative slow */
+void tickadj_set_ppm(signed short ppm) {
+  /* Negation is a shortcut for computing 1 / ((1M + ppm) / 1M) that's accurate
+   * out to a few hundred, which is all we want. From her on out the clock speed
+   * will actually be *divided* by (1000000 + ppm) / 10000000
+   */
+
+  if (ppm < -2047 || ppm > 2047) {
     debug("time adjustment out of range!\n");
   } else {
-    tickadj_set(upper, lower);
+    signed short clocks = -16 * ppm;
+    tickadj_set_clocks(clocks);
   }
 }
 

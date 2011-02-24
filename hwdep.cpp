@@ -17,6 +17,10 @@ void timer_set_interval(unsigned short top) {
   debug("period "); debug_int(timer.top); debug("\n");
 }
 
+unsigned short timer_get_interval() {
+  return timer.top + 1;
+}
+
 extern void timer_int();
 
 void timer_clk() {
@@ -73,12 +77,17 @@ ISR(TIMER4_COMPA_vect) {
 }
 
 ISR(TIMER4_OVF_vect) {
-  if (timer_ready)
-    timer_int();
+  if (timer_ready) {
+    /* Handle an overrun nicely */
+  }
 }
 
 void timer_set_interval(unsigned short top) {
   OCR4A = top;
 }
   
+unsigned short timer_get_interval() {
+  return OCR4A;
+}
+
 #endif

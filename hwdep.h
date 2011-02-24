@@ -64,17 +64,21 @@ inline unsigned short timer_get_counter () {
 
 #define PREDIV 8
 #define NS_PER_COUNT (1000000000L / (CPU_CLOCK / PREDIV))
-#define NS_PER_INT (1000000000L / ((CPU_CLOCK / PREDIV) / DEF_TIMER_VAL))
+#define NSPI(tm) (1000000000L / ((CPU_CLOCK / PREDIV) / tm))
+#define NS_PER_INT NSPI(DEF_TIMER_VAL)
 #define INT_PER_SEC ((CPU_CLOCK / PREDIV) / DEF_TIMER_VAL)
 
 extern uint32 time_get_ns();
 extern void timer_init();
 extern void timer_set_interval(unsigned short);
+extern unsigned short timer_get_interval();
 
 extern char sec;
+
 static void print_time() {
   uint32 ns = time_get_ns();
-  debug_int(sec); debug("."); debug_long(ns); debug("\n");
+//  debug_int((short)sec); debug("."); debug_long(ns); debug("\n");
+  debug_float((float)sec + (float)ns / 1000000000L); debug("\n");
 }
 
 #endif
