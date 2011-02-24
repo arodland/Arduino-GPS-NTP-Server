@@ -15,8 +15,8 @@ uint32 time_get_ns() {
 }
 
 void tickadj_adjust() {
-  int x = (tickadj_phase / 16 < tickadj_lower / 16) ? 1 : 0;
-  int y = (tickadj_phase % 16 < (tickadj_lower % 16) + x);
+  int x = (tickadj_phase / 16 < tickadj_lower % 16) ? 1 : 0;
+  int y = (tickadj_phase % 16 < (tickadj_lower / 16) + x);
 
   /* these actually give periods of DEF_TIMER_VAL + tickadj_upper and
    * DEF_TIMER_VAL + tickadj_upper + 1 because the timer adds one. This means
@@ -73,15 +73,21 @@ void tickadj_set_ppm(signed short ppm) {
    */
 
   ppm = -ppm;
-  signed short upper = ppm  / 16;
-  unsigned char lower = ppm % 16;
-
+  char negative = 0;
   if (ppm < 0) {
-    upper--; /* lower is always interpreted as an addition, so e.g. -10/256
-                will come up here as lower=246, gross=0. We need to make it
-                gross=-1 so that -1 + 246/256 == -10/256
-              */
-    lower--;
+    negative = 1;
+    ppm = 0 - ppm;
+  }
+
+  signed short upper = ppm  / 16;
+  unsigned char lower = (ppm % 16) * 16;
+
+  if (negative) {
+    upper = (0 - upper) - 1;
+    lower = 0 - lower;
+    /* lower is always interpreted as addition, so the opposite of
+       e.g. 1 + 16/256 is -2 + 240/256.
+    */
   }
 
   if (upper < -128 || upper > 127) {
