@@ -1,7 +1,7 @@
 SIMCXX=g++
 SIMCXXFLAGS=-DF_CPU=16000000 -DSIMULATE
 
-SIMOBJS = sim/simmain.o sim/hwdep.o sim/timing.o
+SIMOBJS = $(patsubst %.cpp,sim/%.o,$(wildcard *.cpp))
 
 $(SIMOBJS) : *.h
 
