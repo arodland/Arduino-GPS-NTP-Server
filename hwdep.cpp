@@ -1,5 +1,8 @@
 #include "hwdep.h"
 
+volatile char pps_int = 1;
+volatile uint32 pps_ns;
+
 #ifdef SIMULATE
 
 struct _timer_struct timer;
@@ -90,13 +93,13 @@ ISR(TIMER4_OVF_vect) {
 }
 
 ISR(TIMER4_CAPT_vec) {
-  Serial.print("PPS!\n");
+  pps_ns = time_get_ns();
+  pps_int = 1;
 }
 
 void int4() {
-  Serial.print("INT4 ");
-  Serial.print(time_get_ns());
-  Serial.print("\n");
+  pps_ns = time_get_ns();
+  pps_int = 1;
 }
 
 void timer_set_interval(unsigned short top) {

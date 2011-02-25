@@ -1,6 +1,9 @@
 #include "hwdep.h"
 #include "timing.h"
 
+volatile extern char pps_int;
+volatile extern uint32 pps_ns;
+
 void setup () {
   pinMode(13, OUTPUT);
   for (int k = 0 ; k < 3 ; k++) {
@@ -19,9 +22,18 @@ void loop () {
   if (Serial1.available()) {
     int chin = Serial1.read();
     Serial.print(chin, BYTE);
+    if (chin == '\n') {
+      if (pps_int) {
+        pps_int = 0;
+        Serial.print("PPS: ");
+        Serial.println(pps_ns);
+      }
+    }
   }
 }
 
 void second_int() {
 //  print_time();
 }
+
+// vim: ft=cpp
