@@ -1,6 +1,6 @@
 #include "hwdep.h"
 
-volatile static char ints = 0;
+volatile /* static */ char ints = 0;
 /* static */ char sec = 0;
 static signed char tickadj_upper = 0;
 static unsigned char tickadj_lower = 0;
@@ -11,7 +11,7 @@ uint32 make_ns(unsigned char ints, unsigned short counter) {
 }
 
 uint32 time_get_ns() {
-  return make_ns(ints, timer_get_counter());
+  return make_ns(ints + timer_get_pending(), timer_get_counter());
 }
 
 void tickadj_adjust() {

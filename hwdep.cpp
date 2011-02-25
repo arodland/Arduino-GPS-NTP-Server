@@ -88,6 +88,7 @@ ISR(TIMER4_COMPA_vect) {
 
 ISR(TIMER4_OVF_vect) {
   if (timer_ready) {
+    Serial.println("OVF");
     /* Handle an overrun nicely */
   }
 }

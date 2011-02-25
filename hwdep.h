@@ -31,6 +31,10 @@ inline unsigned short timer_get_counter () {
   return timer.counter;
 }
 
+inline char timer_get_pending () {
+  return 0;
+}
+
 #else
 
 #include "WProgram.h"
@@ -55,6 +59,10 @@ typedef unsigned long int uint32;
 
 inline unsigned short timer_get_counter () {
   return TCNT4;
+}
+
+inline char timer_get_pending () {
+  return ((TIFR4 & _BV(OCF4A)) ? 1 : 0);
 }
 
 #endif
