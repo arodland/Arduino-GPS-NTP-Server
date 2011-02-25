@@ -58,13 +58,14 @@ void timer_int() {
 void tickadj_set(signed char upper, unsigned char lower) {
   tickadj_upper = upper;
   tickadj_lower = lower;
-  debug("tickadj_upper = "); debug_int(tickadj_upper);
-  debug(", tickadj_lower = "); debug_int((short)tickadj_lower); debug("\n");
+//  debug("tickadj_upper = "); debug_int(tickadj_upper);
+//  debug(", tickadj_lower = "); debug_int((short)tickadj_lower); debug("\n");
   tickadj_adjust();
 }
 
 void tickadj_set_clocks(signed short clocks) {
   char negative = 0;
+  debug("tickadj = "); debug_int(clocks); debug("\n");
   if (clocks < 0) {
     negative = 1;
     clocks = 0 - clocks;
