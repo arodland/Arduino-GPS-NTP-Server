@@ -1,5 +1,5 @@
 SIMCXX=g++
-SIMCXXFLAGS=-DF_CPU=16000000 -DSIMULATE
+SIMCXXFLAGS=-DF_CPU=16000000 -DSIMULATE -g
 
 SIMOBJS = $(patsubst %.cpp,sim/%.o,$(wildcard *.cpp))
 
