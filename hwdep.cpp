@@ -55,23 +55,30 @@ static volatile int timer_ready = 0;
 
 extern void timer_int();
 
-#define TIMER4_COMPA_INT 42
+void int4();
 
 void timer_init() {
+  pinMode(48, INPUT);
+  digitalWrite(48, LOW); /* Disable pullup */
+  pinMode(2, INPUT);
+
+//  TCCR4A = _BV(COM4A1) | _BV(COM4A0);
   TCCR4A = 0;
-  bitWrite(TCCR4A, COM4A1, 1);
-  bitWrite(TCCR4A, COM4A0, 1);
   
-  TCCR4B = 0;
-  bitWrite(TCCR4B, CS41, 1);
-  bitWrite(TCCR4B, WGM42, 1);
-  TIMSK4 = 0;
-  bitWrite(TIMSK4, OCIE4A, 1);
+  TCCR4B = _BV(CS41) | _BV(WGM42) | _BV(ICES4);
+
+  TIMSK4 = _BV(OCIE4A) | _BV(ICIE4) | _BV(TOIE4);
+
   timer_set_interval(DEF_TIMER_VAL);
   timer_ready = 1;
+
+  attachInterrupt(0, int4, RISING);
+
 }
 
 ISR(TIMER4_COMPA_vect) {
+  TIFR4 |= _BV(ICF4);
+
   if (timer_ready) 
     timer_int();
 }
@@ -80,6 +87,16 @@ ISR(TIMER4_OVF_vect) {
   if (timer_ready) {
     /* Handle an overrun nicely */
   }
+}
+
+ISR(TIMER4_CAPT_vec) {
+  Serial.print("PPS!\n");
+}
+
+void int4() {
+  Serial.print("INT4 ");
+  Serial.print(time_get_ns());
+  Serial.print("\n");
 }
 
 void timer_set_interval(unsigned short top) {

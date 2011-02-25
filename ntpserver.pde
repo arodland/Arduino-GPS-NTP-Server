@@ -12,14 +12,16 @@ void setup () {
   Serial.begin(115200);
   timer_init();
   tickadj_set_clocks(-3552); /* +222 ppm */
+  Serial1.begin(4800);
 }
 
-static int i = 0;
-
 void loop () {
-  i++;
+  if (Serial1.available()) {
+    int chin = Serial1.read();
+    Serial.print(chin, BYTE);
+  }
 }
 
 void second_int() {
-  print_time();
+//  print_time();
 }
