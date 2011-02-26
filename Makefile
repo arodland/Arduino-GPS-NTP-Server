@@ -3,6 +3,9 @@ SIMCXXFLAGS=-DF_CPU=16000000 -DSIMULATE -g
 
 SIMOBJS = $(patsubst %.cpp,sim/%.o,$(wildcard *.cpp))
 
+all: sim hex
+
+
 $(SIMOBJS) : *.h
 
 timesim: $(SIMOBJS)
@@ -25,4 +28,13 @@ include $(ARDUINO_DIR)/Arduino.mk
 
 hex: build-cli/ntpserver.hex
 
-.PHONY: sim hex
+cleansim:
+	rm sim/*.o
+
+cleanarduino:
+	rm build-cli/*
+
+clean: cleansim cleanarduino
+
+
+.PHONY: sim hex cleansim cleanarduino clean
