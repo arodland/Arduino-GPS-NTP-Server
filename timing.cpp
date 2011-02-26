@@ -107,7 +107,8 @@ static int32 last_pps_ns = 0;
 static int32 pps_ns_copy = 0;
 static short last_slew_rate = 0;
 
-unsigned short clocks = -3439; /* 213.2 ppm */
+//unsigned short clocks = -3439; /* 213.2 ppm */
+unsigned short clocks = 0;
 
 void pll_run() {
   pps_int = 0;
@@ -120,8 +121,7 @@ void pll_run() {
     pps_ns_copy = 0;
   }
 
-  Serial.print("PPS: ");
-  Serial.println(pps_ns_copy);
+  debug("PPS: "); debug_long(pps_ns_copy); debug("\n");
 
   short slew_rate = 0;
   char hardslew = 0;
@@ -129,11 +129,11 @@ void pll_run() {
   if (pps_ns_copy < -32500000L) {
     ints++;
     hardslew = 1;
-    Serial.println("Hard slew -");
+    debug("Hard slew -\n");
   } else if (pps_ns_copy > 32500000L) {
     ints--;
     hardslew = 1;
-    Serial.println("Hard slew +");
+    debug("Hard slew +\n");
   } else if (pps_ns_copy > 5000 || pps_ns_copy < -5000) {
     slew_rate = pps_ns_copy / 4096;
     if (pps_ns_copy > 10000) {
@@ -141,28 +141,26 @@ void pll_run() {
     } else if (pps_ns_copy < -100000) {
       slew_rate -= 100;
     }
-    Serial.print("Slew ");
-    Serial.println(slew_rate);
+    debug("Slew "); debug_int(slew_rate); debug("\n");
   }
 
   int32 ppschange = pps_ns_copy - last_pps_ns + (int32)last_slew_rate * 1000 / 16;
-  Serial.print("PPS change ");
-  Serial.println(ppschange);
+  debug("PPS change "); debug_long(ppschange); debug("\n");
 
   if (!hardslew && ppschange < -2000) {
     if (ppschange < -50000) {
-      Serial.println("Speed up max");
+      debug("Speed up max\n");
       clocks -= 10;
     } else {
-      Serial.println("Speed up");
+      debug("Speed up\n");
       clocks += ppschange / 2000;
     }
   } else if (!hardslew && ppschange > 2000) {
     if (ppschange > 50000) {
-      Serial.println("Slow down max");
+      debug("Slow down max\n");
       clocks += 10;
     } else {
-      Serial.println("Slow down");
+      debug("Slow down\n");
       clocks += ppschange / 2000;
     }
   } else if (!hardslew && slew_rate) {

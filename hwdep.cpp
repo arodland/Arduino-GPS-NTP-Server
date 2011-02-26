@@ -17,7 +17,6 @@ void timer_init() {
 
 void timer_set_interval(unsigned short top) {
   timer.top = top - 1;
-  debug("period "); debug_int(timer.top); debug("\n");
 }
 
 unsigned short timer_get_interval() {
@@ -26,7 +25,11 @@ unsigned short timer_get_interval() {
 
 extern void timer_int();
 
-void timer_clk() {
+static uint32 gps_clk = 0;
+
+#define GPS_CYCLES 16001000L
+
+void sim_clk() {
   timer.prediv_count ++;
   if (timer.prediv_count == timer.prediv) {
     timer.prediv_count = 0;
@@ -36,19 +39,11 @@ void timer_clk() {
       timer_int();
     }
   }
-}
-
-extern void gps_int();
-
-static int gps_counter = 0;
-
-#define GPS_RATE 16000128L
-
-void gps_clk() {
-  gps_counter++;
-  if (gps_counter == GPS_RATE) {
-    gps_counter = 0;
-    gps_int();
+  gps_clk ++;
+  if (gps_clk >= GPS_CYCLES) {
+    gps_clk -= GPS_CYCLES;
+    pps_ns = time_get_ns();
+    pps_int = 1;
   }
 }
 

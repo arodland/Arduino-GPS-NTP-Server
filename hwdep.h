@@ -9,10 +9,11 @@
 
 #define debug(x) printf("%s", x)
 #define debug_int(x) printf("%d", x)
-#define debug_long(x) printf("%ld", x)
+#define debug_long(x) printf("%d", (signed int)x)
+#define debug_ulong(x) printf("%u", (unsigned int)x)
 #define debug_float(x) printf("%f", x)
 
-typedef int int32;
+typedef signed int int32;
 typedef unsigned int uint32;
 
 struct _timer_struct {
@@ -24,8 +25,7 @@ struct _timer_struct {
 
 extern struct _timer_struct timer;
 
-extern void timer_clk();
-extern void gps_clk();
+extern void sim_clk();
 
 inline unsigned short timer_get_counter () {
   return timer.counter;
