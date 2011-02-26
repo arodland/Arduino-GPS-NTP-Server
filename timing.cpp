@@ -7,10 +7,16 @@ static unsigned char tickadj_lower = 0;
 static unsigned char tickadj_phase = 0;
 
 uint32 make_ns(unsigned char ints, unsigned short counter) {
-  return ints * NSPI(timer_get_interval()) + counter * NS_PER_COUNT;
+  return ints * NS_PER_INT + counter * NSPC(timer_get_interval());
 }
 
 uint32 time_get_ns() {
+/*  debug("time_get_ns: ints = ");
+  debug_int(ints);
+  debug(", counter = ");
+  debug_int(timer_get_counter());
+  debug("\n"); */
+
   return make_ns(ints + timer_get_pending(), timer_get_counter());
 }
 

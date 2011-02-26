@@ -72,6 +72,9 @@ inline char timer_get_pending () {
 
 #define PREDIV 8
 #define NS_PER_COUNT (1000000000L / (CPU_CLOCK / PREDIV))
+
+// adding tm/2 here biases by 1/2 so it rounds :)
+#define NSPC(tm) ((tm / 2 + NS_PER_COUNT * DEF_TIMER_VAL) / tm)
 #define NSPI(tm) (1000000000L / ((CPU_CLOCK / PREDIV) / tm))
 #define NS_PER_INT NSPI(DEF_TIMER_VAL)
 #define INT_PER_SEC ((CPU_CLOCK / PREDIV) / DEF_TIMER_VAL)
