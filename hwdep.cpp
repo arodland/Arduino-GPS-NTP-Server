@@ -25,9 +25,10 @@ unsigned short timer_get_interval() {
 
 extern void timer_int();
 
-static uint32 gps_clk = 0;
 
 #define GPS_CYCLES 16001000L
+
+static uint32 gps_clk = (GPS_CYCLES - GPS_CYCLES / 40);
 
 void sim_clk() {
   timer.prediv_count ++;

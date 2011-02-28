@@ -7,7 +7,7 @@
 volatile extern char pps_int;
 
 void second_int() {
-  usleep(250000);
+//  usleep(2500);
 }
 
 int main() {
