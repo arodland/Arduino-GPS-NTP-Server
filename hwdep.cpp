@@ -99,11 +99,11 @@ void int4() {
 }
 
 void timer_set_interval(unsigned short top) {
-  OCR4A = top;
+  OCR4A = top - 1;
 }
   
 unsigned short timer_get_interval() {
-  return OCR4A;
+  return OCR4A + 1;
 }
 
 #endif
