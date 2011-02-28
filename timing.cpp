@@ -116,9 +116,16 @@ static short last_slew_rate = 0;
 //unsigned short clocks = -3439; /* 213.2 ppm */
 unsigned short clocks = 0;
 
+// One half of a timer interrupt to minimize the odds
+// of having a PPS int hit within a few cycles of a timer int
+#define PLL_OFFSET 15625000
+
 void pll_run() {
   pps_int = 0;
-  pps_ns_copy = pps_ns;
+  pps_ns_copy = pps_ns - PLL_OFFSET;
+  if (pps_ns_copy < 1000000000L)
+    pps_ns_copy += 1000000000L;
+
   if (pps_ns_copy > 500000000L) {
     pps_ns_copy -= 1000000000L;
   }
