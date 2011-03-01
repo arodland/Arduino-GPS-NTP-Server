@@ -143,6 +143,7 @@ static short clocks = -3439; /* 213.2 ppm */
 // One half of a timer interrupt to minimize the odds
 // of having a PPS int hit within a few cycles of a timer int
 #define PLL_OFFSET 15625000
+#define PLL_RATE_DIV 3072L
 
 void pll_run() {
   pps_int = 0;
@@ -210,25 +211,25 @@ void pll_run() {
   ppschange_int += ppschange;
   debug("PPS change integrated: "); debug_long(ppschange_int); debug("\n");
 
-  if (!hardslew && ppschange_int < -4096) {
-    if (ppschange_int < -65536L) {
+  if (!hardslew && ppschange_int < -PLL_RATE_DIV) {
+    if (ppschange_int < -16 * PLL_RATE_DIV) {
       debug("Speed ++\n");
       clocks -= 16;
       ppschange_int = 0;
     } else {
       debug("Speed +\n");
-      clocks += ppschange_int / 4096;
-      ppschange_int -= 4096 * (ppschange_int / 4096);
+      clocks += ppschange_int / PLL_RATE_DIV;
+      ppschange_int -= PLL_RATE_DIV * (ppschange_int / PLL_RATE_DIV);
     }
-  } else if (!hardslew && ppschange_int > 4096) {
-    if (ppschange_int > 65536L) {
+  } else if (!hardslew && ppschange_int > PLL_RATE_DIV) {
+    if (ppschange_int > 16 * PLL_RATE_DIV) {
       debug("Speed --\n");
       clocks += 16;
       ppschange_int = 0;
     } else {
       debug("Speed -\n");
-      clocks += ppschange_int / 4096;
-      ppschange_int -= 4096 * (ppschange_int / 4096);
+      clocks += ppschange_int / PLL_RATE_DIV;
+      ppschange_int -= PLL_RATE_DIV * (ppschange_int / PLL_RATE_DIV);
     }
   } else {
     debug("Speed =\n");
