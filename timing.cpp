@@ -143,10 +143,10 @@ static short clocks = -3439; /* 213.2 ppm */
 // One half of a timer interrupt to minimize the odds
 // of having a PPS int hit within a few cycles of a timer int
 #define PLL_OFFSET 15625000
-#define PLL_SLEW_DIV 1536L
-#define PLL_SLEW_THRESH 2048L
-#define PLL_SLEW_MAX 6144L
-#define PLL_RATE_DIV 2048L
+#define PLL_SLEW_DIV 1024L
+#define PLL_SLEW_THRESH 1536L
+#define PLL_SLEW_MAX 8192L
+#define PLL_RATE_DIV 1536L
 
 void pll_run() {
   pps_int = 0;
@@ -202,8 +202,11 @@ void pll_run() {
       slew_rate = -PLL_SLEW_MAX;
     debug("Slew "); debug_int(slew_rate); debug("\n");
   } else {
-    ppschange_int += pps_ns_copy / 24 + pps_filtered / 16;
     debug("Slew 0\n");
+  }
+
+  if (slew_rate >= -5 && slew_rate <= 5) {
+    ppschange_int += pps_ns_copy / 24 + pps_filtered / 16;
   }
 
 /* The ideal factor for last_slew_rate here would be 62.5 (1000 / 16) but we
