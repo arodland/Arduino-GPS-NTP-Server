@@ -1,0 +1,5 @@
+set xlabel "Running time"
+set ylabel "Phase error (us)"
+set y2label "Freq offset (ppm)"
+set y2tics auto
+plot "datafile" using 2 title "Phase error", "datafile" using 3 with lines axis x1y2 title "PLL freq", "datafile" using 4 with lines axis x1y2 title "Running freq"
