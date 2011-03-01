@@ -57,28 +57,24 @@ extern void timer_int();
 void int4();
 
 void timer_init() {
-  pinMode(48, INPUT);
-  digitalWrite(48, LOW); /* Disable pullup */
+  pinMode(49, INPUT);
   pinMode(2, INPUT);
 
 //  TCCR4A = _BV(COM4A1) | _BV(COM4A0);
   TCCR4A = 0;
-  
+
   TCCR4B = _BV(CS41) | _BV(WGM42) | _BV(ICES4);
 
   TIMSK4 = _BV(OCIE4A) | _BV(ICIE4) | _BV(TOIE4);
 
   timer_set_interval(DEF_TIMER_VAL);
   timer_ready = 1;
-
-  attachInterrupt(0, int4, RISING);
-
 }
 
 ISR(TIMER4_COMPA_vect) {
   TIFR4 |= _BV(ICF4);
 
-  if (timer_ready) 
+  if (timer_ready)
     timer_int();
 }
 
@@ -89,12 +85,7 @@ ISR(TIMER4_OVF_vect) {
   }
 }
 
-ISR(TIMER4_CAPT_vec) {
-  pps_ns = time_get_ns();
-  pps_int = 1;
-}
-
-void int4() {
+ISR(TIMER4_CAPT_vect) {
   pps_ns = time_get_ns();
   pps_int = 1;
 }
@@ -102,7 +93,7 @@ void int4() {
 void timer_set_interval(unsigned short top) {
   OCR4A = top - 1;
 }
-  
+
 unsigned short timer_get_interval() {
   return OCR4A + 1;
 }
