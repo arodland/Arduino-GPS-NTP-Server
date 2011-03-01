@@ -202,6 +202,7 @@ void pll_run() {
       slew_rate = -PLL_SLEW_MAX;
     debug("Slew "); debug_int(slew_rate); debug("\n");
   } else {
+    ppschange_int += pps_ns_copy / 24 + pps_filtered / 16;
     debug("Slew 0\n");
   }
 
