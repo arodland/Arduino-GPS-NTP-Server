@@ -26,7 +26,7 @@ unsigned short timer_get_interval() {
 extern void timer_int();
 
 
-#define GPS_CYCLES 16001000L
+#define GPS_CYCLES (16000000L - 4000L)
 
 static uint32 gps_clk = (GPS_CYCLES - GPS_CYCLES / 40);
 
