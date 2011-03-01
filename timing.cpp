@@ -208,11 +208,11 @@ void pll_run() {
 
   if (!hardslew && ppschange_int < -4096) {
     if (ppschange_int < -65536L) {
-      debug("Speed +\n");
+      debug("Speed ++\n");
       clocks -= 16;
       ppschange_int = 0;
     } else {
-      debug("Speed ++\n");
+      debug("Speed +\n");
       clocks += ppschange_int / 4096;
       ppschange_int -= 4096 * (ppschange_int / 4096);
     }
