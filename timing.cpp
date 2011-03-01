@@ -202,10 +202,10 @@ void pll_run() {
   }
 
 /* The ideal factor for last_slew_rate here would be 62.5 (1000 / 16) but we
- * overcorrect a little bit, leaving a residual that will help to keep us from
+ * undercorrect a little bit, leaving a residual that will help to keep us from
  * settling in a state where slew != 0
  */
-  int32 ppschange = pps_ns_copy - pps_history[1] + (int32)last_slew_rate * 64;
+  int32 ppschange = pps_ns_copy - pps_history[1] + (int32)last_slew_rate * 61;
 //  debug("PPS change raw: "); debug_long(ppschange); debug("\n");
   ppschange_int += ppschange;
   debug("PPS change integrated: "); debug_long(ppschange_int); debug("\n");
