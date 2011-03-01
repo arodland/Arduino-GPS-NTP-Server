@@ -1,6 +1,7 @@
 #ifndef __HWDEP_H
 #define __HWDEP_H
 
+
 #ifdef SIMULATE
 
 #include <stdio.h>
@@ -21,6 +22,7 @@ struct _timer_struct {
   unsigned char prediv_count;
   unsigned short top;
   unsigned short counter;
+  unsigned short capture;
 };
 
 extern struct _timer_struct timer;
@@ -29,6 +31,10 @@ extern void sim_clk();
 
 inline unsigned short timer_get_counter () {
   return timer.counter;
+}
+
+inline unsigned short timer_get_capture () {
+  return timer.capture;
 }
 
 inline char timer_get_pending () {
@@ -61,11 +67,17 @@ inline unsigned short timer_get_counter () {
   return TCNT4;
 }
 
+inline unsigned short timer_get_capture () {
+  return ICR4;
+}
+
 inline char timer_get_pending () {
   return ((TIFR4 & _BV(OCF4A)) ? 1 : 0);
 }
 
 #endif
+
+#include "timing.h"
 
 #define DEF_TIMER_VAL 62500
 #define MAX_TIMER_VAL 65535
@@ -79,7 +91,6 @@ inline char timer_get_pending () {
 #define NS_PER_INT NSPI(DEF_TIMER_VAL)
 #define INT_PER_SEC ((CPU_CLOCK / PREDIV) / DEF_TIMER_VAL)
 
-extern uint32 time_get_ns();
 extern void timer_init();
 extern void timer_set_interval(unsigned short);
 extern unsigned short timer_get_interval();

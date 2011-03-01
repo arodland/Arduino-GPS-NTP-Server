@@ -6,18 +6,21 @@ static signed char tickadj_upper = 0;
 static unsigned char tickadj_lower = 0;
 static unsigned char tickadj_phase = 0;
 
-uint32 make_ns(unsigned char ints, unsigned short counter) {
+int32 make_ns(unsigned char ints, unsigned short counter) {
   return ints * NS_PER_INT + counter * NSPC(timer_get_interval());
 }
 
-uint32 time_get_ns() {
-/*  debug("time_get_ns: ints = ");
-  debug_int(ints);
-  debug(", counter = ");
-  debug_int(timer_get_counter());
-  debug("\n"); */
-
+int32 time_get_ns() {
   return make_ns(ints + timer_get_pending(), timer_get_counter());
+}
+
+int32 time_get_ns_capt() {
+  char i = ints;
+  unsigned short ctr = timer_get_capture();
+  if (ctr > timer_get_counter()) { /* Timer reset after capture */
+    i--;
+  }
+  return make_ns(i, timer_get_capture());
 }
 
 void tickadj_adjust() {

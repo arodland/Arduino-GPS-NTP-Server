@@ -86,7 +86,7 @@ ISR(TIMER4_OVF_vect) {
 }
 
 ISR(TIMER4_CAPT_vect) {
-  pps_ns = time_get_ns();
+  pps_ns = time_get_ns_capt();
   pps_int = 1;
 }
 
