@@ -137,8 +137,8 @@ static int32 pps_history[5];
 static short last_slew_rate = 0;
 static int32 ppschange_int;
 
-//unsigned short clocks = -3439; /* 213.2 ppm */
-static short clocks = 0;
+static short clocks = -3439; /* 213.2 ppm */
+//static short clocks = 0;
 
 // One half of a timer interrupt to minimize the odds
 // of having a PPS int hit within a few cycles of a timer int
