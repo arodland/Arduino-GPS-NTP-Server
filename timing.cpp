@@ -115,9 +115,10 @@ volatile extern char ints;
 static int32 last_pps_ns = 0;
 static int32 pps_ns_copy = 0;
 static short last_slew_rate = 0;
+static int32 ppschange_int;
 
 //unsigned short clocks = -3439; /* 213.2 ppm */
-unsigned short clocks = 0;
+static short clocks = 0;
 
 // One half of a timer interrupt to minimize the odds
 // of having a PPS int hit within a few cycles of a timer int
@@ -150,45 +151,50 @@ void pll_run() {
     ints--;
     hardslew = 1;
     debug("Hard slew +\n");
-  } else if (pps_ns_copy > 5000 || pps_ns_copy < -5000) {
-    slew_rate = pps_ns_copy / 4096;
+  } else if (pps_ns_copy > 2048 || pps_ns_copy < -2048) {
+    slew_rate = pps_ns_copy / 2048;
     if (pps_ns_copy > 10000) {
       slew_rate += 100;
     } else if (pps_ns_copy < -100000) {
       slew_rate -= 100;
     }
+    if (slew_rate > 2000)
+      slew_rate = 2000;
+    if (slew_rate < -2000)
+      slew_rate = -2000;
     debug("Slew "); debug_int(slew_rate); debug("\n");
   }
 
   int32 ppschange = pps_ns_copy - last_pps_ns + (int32)last_slew_rate * 1000 / 16;
-  debug("PPS change "); debug_long(ppschange); debug("\n");
+  debug("PPS change raw: "); debug_long(ppschange); debug("\n");
+  ppschange_int += ppschange;
+  debug("PPS change integrated: "); debug_long(ppschange_int); debug("\n");
 
-  if (!hardslew && ppschange < -2000) {
-    if (ppschange < -50000) {
+  if (!hardslew && ppschange_int < -4096) {
+    if (ppschange_int < -40960) {
       debug("Speed up max\n");
       clocks -= 10;
+      ppschange_int = 0;
     } else {
       debug("Speed up\n");
-      clocks += ppschange / 2000;
+      clocks += ppschange_int / 4096;
+      ppschange_int -= 4096 * (ppschange_int / 4096);
     }
-  } else if (!hardslew && ppschange > 2000) {
-    if (ppschange > 50000) {
+  } else if (!hardslew && ppschange_int > 4096) {
+    if (ppschange_int > 40960) {
       debug("Slow down max\n");
       clocks += 10;
+      ppschange_int = 0;
     } else {
       debug("Slow down\n");
-      clocks += ppschange / 2000;
-    }
-  } else if (!hardslew && slew_rate) {
-    if (slew_rate > 0) {
-      clocks++;
-    } else {
-      clocks--;
+      clocks += ppschange_int / 4096;
+      ppschange_int -= 4096 * (ppschange_int / 4096);
     }
   }
 
   last_slew_rate = slew_rate;
   last_pps_ns = pps_ns_copy;
 
+  debug("PLL: "); debug_int(clocks); debug("\n");
   tickadj_set_clocks(clocks + slew_rate);
 }
