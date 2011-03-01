@@ -1,5 +1,7 @@
 #include "hwdep.h"
 
+#include <string.h>
+
 volatile /* static */ char ints = 0;
 /* static */ char sec = 0;
 static signed char tickadj_upper = 0;
@@ -108,12 +110,30 @@ void tickadj_set_ppm(signed short ppm) {
   }
 }
 
+inline int32 med_mean_filter(int32 history[5]) {
+  int32 tmp;
+  int32 copy[5];
+  memcpy(copy, history, 5 * sizeof(int32));
+
+  for (char i = 0 ; i < 4 ; i++) {
+    for (char j = i + 1 ; j < 5 ; j++) {
+      if (copy[j] < copy[i]) {
+        tmp = copy[i];
+        copy[i] = copy[j];
+        copy[j] = tmp;
+      }
+    }
+  }
+
+  return ((copy[1] + copy[2] + copy[3]) / 3);
+}
+
 volatile extern char pps_int;
 volatile extern uint32 pps_ns;
 volatile extern char ints;
 
-static int32 last_pps_ns = 0;
 static int32 pps_ns_copy = 0;
+static int32 pps_history[5];
 static short last_slew_rate = 0;
 static int32 ppschange_int;
 
@@ -130,6 +150,9 @@ void pll_run() {
   if (pps_ns_copy < 1000000000L)
     pps_ns_copy += 1000000000L;
 
+  if (pps_ns_copy > 1000000000L)
+    pps_ns_copy -= 1000000000L;
+
   if (pps_ns_copy > 500000000L) {
     pps_ns_copy -= 1000000000L;
   }
@@ -140,60 +163,74 @@ void pll_run() {
 
   debug("PPS: "); debug_long(pps_ns_copy); debug("\n");
 
+  pps_history[4] = pps_history[3];
+  pps_history[3] = pps_history[2];
+  pps_history[2] = pps_history[1];
+  pps_history[1] = pps_history[0];
+  pps_history[0] = pps_ns_copy;
+
+  int32 pps_filtered = med_mean_filter(pps_history);
+  debug("PPS filtered: "); debug_long(pps_filtered); debug("\n");
+
   short slew_rate = 0;
   char hardslew = 0;
 
-  if (pps_ns_copy < -32500000L) {
+  if (pps_ns_copy < -32500000L && pps_filtered < -32500000L) {
     ints++;
     hardslew = 1;
-    debug("Hard slew -\n");
-  } else if (pps_ns_copy > 32500000L) {
+    ppschange_int = 0;
+    debug("Slew ------\n");
+  } else if (pps_ns_copy > 32500000L && pps_filtered > 32500000L) {
     ints--;
     hardslew = 1;
-    debug("Hard slew +\n");
-  } else if (pps_ns_copy > 2048 || pps_ns_copy < -2048) {
-    slew_rate = pps_ns_copy / 2048;
-    if (pps_ns_copy > 10000) {
-      slew_rate += 100;
-    } else if (pps_ns_copy < -100000) {
-      slew_rate -= 100;
+    ppschange_int = 0;
+    debug("Slew ++++++\n");
+  } else if (pps_filtered > 2048 || pps_filtered < -2048) {
+    slew_rate = pps_filtered / 2048;
+    if (pps_filtered > 10000) {
+      slew_rate += 50;
+    } else if (pps_filtered < -100000) {
+      slew_rate -= 50;
     }
-    if (slew_rate > 2000)
-      slew_rate = 2000;
-    if (slew_rate < -2000)
-      slew_rate = -2000;
+    if (slew_rate > 4000)
+      slew_rate = 4000;
+    if (slew_rate < -4000)
+      slew_rate = -4000;
     debug("Slew "); debug_int(slew_rate); debug("\n");
+  } else {
+    debug("Slew 0\n");
   }
 
-  int32 ppschange = pps_ns_copy - last_pps_ns + (int32)last_slew_rate * 1000 / 16;
-  debug("PPS change raw: "); debug_long(ppschange); debug("\n");
+  int32 ppschange = pps_ns_copy - pps_history[1] + (int32)last_slew_rate * 62;
+//  debug("PPS change raw: "); debug_long(ppschange); debug("\n");
   ppschange_int += ppschange;
   debug("PPS change integrated: "); debug_long(ppschange_int); debug("\n");
 
   if (!hardslew && ppschange_int < -4096) {
-    if (ppschange_int < -40960) {
-      debug("Speed up max\n");
-      clocks -= 10;
+    if (ppschange_int < -65536L) {
+      debug("Speed +\n");
+      clocks -= 16;
       ppschange_int = 0;
     } else {
-      debug("Speed up\n");
+      debug("Speed ++\n");
       clocks += ppschange_int / 4096;
       ppschange_int -= 4096 * (ppschange_int / 4096);
     }
   } else if (!hardslew && ppschange_int > 4096) {
-    if (ppschange_int > 40960) {
-      debug("Slow down max\n");
-      clocks += 10;
+    if (ppschange_int > 65536L) {
+      debug("Speed --\n");
+      clocks += 16;
       ppschange_int = 0;
     } else {
-      debug("Slow down\n");
+      debug("Speed -\n");
       clocks += ppschange_int / 4096;
       ppschange_int -= 4096 * (ppschange_int / 4096);
     }
+  } else {
+    debug("Speed =\n");
   }
 
   last_slew_rate = slew_rate;
-  last_pps_ns = pps_ns_copy;
 
   debug("PLL: "); debug_int(clocks); debug("\n");
   tickadj_set_clocks(clocks + slew_rate);
