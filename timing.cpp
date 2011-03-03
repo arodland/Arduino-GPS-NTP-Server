@@ -213,7 +213,7 @@ void pll_run() {
  * undercorrect a little bit, leaving a residual that will help to keep us from
  * settling in a state where slew != 0
  */
-  int32 ppschange = pps_ns_copy - pps_history[1] + (int32)last_slew_rate * 60;
+  int32 ppschange = pps_ns_copy - pps_history[1] + (int32)last_slew_rate * 55;
 //  debug("PPS change raw: "); debug_long(ppschange); debug("\n");
   ppschange_int += ppschange;
   debug("PPS change integrated: "); debug_long(ppschange_int); debug("\n");

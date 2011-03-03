@@ -41,6 +41,30 @@ inline char timer_get_pending () {
   return 0;
 }
 
+inline int gps_can_read() {
+  return 0; /* XXX not implemented */
+}
+
+inline int gps_read() {
+  return -1; /* XXX not implemented */
+}
+
+inline void gps_write(const char * data) {
+  return; /* XXX not implemented */
+}
+
+inline void gps_writebyte(const char ch) {
+  return; /* XXX not implemented */
+}
+
+inline void gps_set_baud(int baud) {
+  return; /* Does nothing */
+}
+
+inline void delay(int millis) {
+  return; /* Does nothing */
+}
+
 #else
 
 #include "WProgram.h"
@@ -74,6 +98,34 @@ inline unsigned short timer_get_capture () {
 inline char timer_get_pending () {
   return ((TIFR4 & _BV(OCF4A)) ? 1 : 0);
 }
+
+#define GPSPORT Serial1
+
+inline int gps_can_read() {
+  return GPSPORT.available();
+}
+
+inline int gps_read() {
+  return GPSPORT.read();
+}
+
+inline void gps_write(const char *data) {
+  Serial.print(data);
+  GPSPORT.print(data);
+}
+
+inline void gps_writebyte(const char ch) {
+  Serial.print(ch, BYTE);
+  GPSPORT.print(ch, BYTE);
+}
+
+inline void gps_set_baud(long baud) {
+  GPSPORT.flush();
+  delay(500);
+  GPSPORT.begin(baud);
+  GPSPORT.flush();
+}
+
 
 #endif
 

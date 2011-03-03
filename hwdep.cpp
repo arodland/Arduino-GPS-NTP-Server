@@ -1,4 +1,5 @@
 #include "hwdep.h"
+#include "gps.h"
 
 volatile char pps_int = 1;
 volatile uint32 pps_ns;
@@ -25,7 +26,9 @@ unsigned short timer_get_interval() {
 
 extern void timer_int();
 
-
+void gps_init() {
+  return; /* XXX unimplemented */
+}
 #define GPS_CYCLES (16000000L - 4000L)
 
 static uint32 gps_clk = (GPS_CYCLES - GPS_CYCLES / 40);
@@ -96,6 +99,14 @@ void timer_set_interval(unsigned short top) {
 
 unsigned short timer_get_interval() {
   return OCR4A + 1;
+}
+
+void gps_set_nmea_reporting();
+
+void gps_init() {
+  GPSPORT.begin(4800);
+//  gps_set_nmea_reporting();
+  gps_set_sirf();
 }
 
 #endif
