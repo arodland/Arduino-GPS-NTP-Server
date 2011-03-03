@@ -18,5 +18,9 @@ enum gps_state_t {
 extern void gps_init();
 extern void gps_poll();
 extern void gps_set_sirf();
+extern void gps_enable_dgps();
+
+extern void gps_write_nmea(const char *);
+extern void gps_write_sirf(const char *, int);
 
 #endif

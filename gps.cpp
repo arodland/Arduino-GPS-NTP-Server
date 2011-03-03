@@ -23,6 +23,37 @@ void gps_write_nmea(const char *sentence) {
   gps_writebyte('\x0a');
 }
 
+void gps_write_sirf(const char *sentence, int len) {
+  unsigned short cksum = 0;
+  gps_write("\xa0\xa2");
+  gps_writebyte(len >> 8);
+  gps_writebyte(len & 0xff);
+  for (int i = 0 ; i < len ; i++) {
+    gps_writebyte(sentence[i]);
+    cksum += (unsigned char) sentence[i];
+  }
+  gps_writebyte((cksum & 0x7fff) >> 8);
+  gps_writebyte(cksum & 0xff);
+  gps_write("\xb0\xb3");
+}
+
+void gps_enable_dgps() {
+  gps_write_sirf("\x84\x00", 2);
+  /* Cmd: 128, 22 bytes unused, 20 channels, enable navlib */
+  // gps_write_sirf("\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x14\x10", 25);
+  /* Cmd: 128, 22 bytes unused, 20 channels, disable navlib */
+  gps_write_sirf("\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x14\x00", 25);
+
+  /* Cmd: 133, DGPS source: 1, 5 bytes unused */
+  gps_write_sirf("\x85\x01\x00\x00\x00\x00\x00", 7);
+  gps_write_sirf("\x85\x01\x00\x00\x00\x00\x00", 7);
+  /* Cmd: 138, DGPS selection: auto, DGPS timeout: auto */
+  gps_write_sirf("\x8a\x00\x00", 3);
+  /* Cmd: 170, PRN: auto, mode: testing, timeout: auto, 2 bytes unused */
+  gps_write_sirf("\xaa\x00\x00\x00\x00\x00", 6);
+
+}
+
 void gps_set_nmea_reporting() {
   gps_write_nmea("PSRF103,00,00,01,01"); // GPGGA 1sec
   gps_write_nmea("PSRF103,01,00,01,01"); // GPGLL off
@@ -142,10 +173,31 @@ void gps_poll() {
 void gps_navdata_message() {
 }
 
-void gps_satdata_message() {
+void gps_tracking_data_message() {
 }
 
 void gps_clockstatus_message() {
+}
+
+void gps_satvisible_message() {
+  unsigned short num_visible = gps_payload[1];
+  debug("Visible SVs:");
+  for (int i = 0 ; i < num_visible; i++) {
+    debug(" ");
+    debug_int((int)(gps_payload[2 + 5 * i]));
+  }
+  debug("\n");
+}
+
+void gps_dgps_message() {
+  unsigned int dgps_source = gps_payload[1];
+
+  debug("DGPS source: "); debug_int(dgps_source); debug(", PRN:");
+  for (int i = 16; i < 52 ; i += 3) {
+    debug(" ");
+    debug_int((int)(gps_payload[i]));
+  }
+  debug("\n");
 }
 
 void gps_geodetic_message() {
@@ -167,6 +219,17 @@ void gps_geodetic_message() {
   debug(" SVs\n");
 }
 
+void gps_ack_message() {
+  debug("Got ACK for message ");
+  debug_int((int)gps_payload[1]);
+  debug("\n");
+}
+
+void gps_nak_message() {
+  debug("Got NAK for message ");
+  debug_int((int)gps_payload[1]);
+  debug("\n");
+}
 void gps_handle_message() {
   unsigned char message_type = gps_payload[0];
   switch(message_type) {
@@ -174,15 +237,40 @@ void gps_handle_message() {
       gps_navdata_message();
       break;
     case 4:
-      gps_satdata_message();
+      gps_tracking_data_message();
       break;
     case 7:
       gps_clockstatus_message();
       break;
+    case 11:
+      gps_ack_message();
+      break;
+    case 12:
+      gps_nak_message();
+      break;
+    case 13:
+      gps_satvisible_message();
+      break;
+    case 27:
+      gps_dgps_message();
+      break;
     case 41:
       gps_geodetic_message();
       break;
-    case 9: case 27:
+    case 28:
+      debug("NavLib msg for sat ");
+      debug_int((int)gps_payload[6]);
+      debug(" sync flags ");
+      debug_int((int)gps_payload[37]);
+      debug("\n");
+      break;
+    case 29:
+      debug("NavLib DGPS msg for sat ");
+      debug_int((int)(gps_payload[1] << 8 + gps_payload[0]));
+      debug("\n");
+      break;
+
+    case 9:
       break;
     default:
       debug("Got "); debug_int(gps_payload_len);

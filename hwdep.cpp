@@ -107,6 +107,7 @@ void gps_init() {
   GPSPORT.begin(4800);
 //  gps_set_nmea_reporting();
   gps_set_sirf();
+  gps_enable_dgps();
 }
 
 #endif
