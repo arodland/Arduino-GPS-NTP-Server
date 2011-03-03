@@ -42,7 +42,7 @@ void gps_enable_dgps() {
   /* Cmd: 128, 22 bytes unused, 20 channels, enable navlib */
   // gps_write_sirf("\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x14\x10", 25);
   /* Cmd: 128, 22 bytes unused, 20 channels, disable navlib */
-  gps_write_sirf("\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x14\x00", 25);
+//  gps_write_sirf("\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x14\x00", 25);
 
   /* Cmd: 133, DGPS source: 1, 5 bytes unused */
   gps_write_sirf("\x85\x01\x00\x00\x00\x00\x00", 7);
@@ -66,7 +66,7 @@ void gps_set_nmea_reporting() {
 }
 
 void gps_set_sirf() {
-  gps_write_nmea("PSRF101,0,0,0,000,0,0,12,8");
+//  gps_write_nmea("PSRF101,0,0,0,000,0,0,12,8");
   delay(1000);
   gps_write_nmea("PSRF100,0,38400,8,1,0");
   gps_set_baud(38400);
