@@ -50,7 +50,9 @@ void gps_enable_dgps() {
   /* Cmd: 138, DGPS selection: auto, DGPS timeout: auto */
   gps_write_sirf("\x8a\x00\x00", 3);
   /* Cmd: 170, PRN: auto, mode: testing, timeout: auto, 2 bytes unused */
-  gps_write_sirf("\xaa\x00\x00\x00\x00\x00", 6);
+  //gps_write_sirf("\xaa\x00\x00\x00\x00\x00", 6);
+  /* Cmd: 170, PRN: 138, mode: testing, timeout: auto, 2 bytes unused */
+  gps_write_sirf("\xaa\x8a\x00\x00\x00\x00", 6);
 
 }
 
@@ -81,6 +83,19 @@ static unsigned char gps_payload[GPS_BUFFER_SIZE];
 static unsigned int gps_payload_checksum;
 static unsigned int msg_checksum;
 static unsigned char *gps_payload_ptr;
+
+int gps_utc_offset(unsigned int hour, unsigned int minute, unsigned int second, uint32 tow_second) {
+  uint32 utc_tod = hour * 3600L + minute * 60L + second;
+  uint32 gps_tod = tow_second % 86400L;
+  int32 utc_offset = utc_tod - gps_tod;
+
+  if (utc_offset > 43200L)
+    utc_offset -= 86400L;
+  if (utc_offset < -43200L)
+    utc_offset += 86400L;
+
+  return utc_offset;
+}
 
 void gps_handle_message();
 
@@ -171,6 +186,31 @@ void gps_poll() {
 }
 
 void gps_navdata_message() {
+  unsigned int mode1 = gps_payload[19];
+  unsigned int mode2 = gps_payload[21];
+  unsigned int svs = gps_payload[28];
+  unsigned int pmode = mode1 & 0x7;
+
+  debug("DGPS: ");
+  if (mode1 & 1<<7)
+    debug("OK");
+  else
+    debug("NO");
+
+  debug(" DOP: ");
+  if (mode1 & 1<<6)
+    debug("NO");
+  else
+    debug("OK");
+
+  debug(" VAL: ");
+  if (mode2 & 1<<1)
+    debug("OK");
+  else
+    debug("NO");
+  debug(" PMODE: ");
+  debug_int(pmode);
+  debug("\n");
 }
 
 void gps_tracking_data_message() {
@@ -190,14 +230,14 @@ void gps_satvisible_message() {
 }
 
 void gps_dgps_message() {
-  unsigned int dgps_source = gps_payload[1];
+/*  unsigned int dgps_source = gps_payload[1];
 
   debug("DGPS source: "); debug_int(dgps_source); debug(", PRN:");
   for (int i = 16; i < 52 ; i += 3) {
     debug(" ");
     debug_int((int)(gps_payload[i]));
   }
-  debug("\n");
+  debug("\n"); */
 }
 
 void gps_geodetic_message() {
@@ -206,17 +246,33 @@ void gps_geodetic_message() {
   unsigned int day = gps_payload[14];
   unsigned int hour = gps_payload[15];
   unsigned int minute = gps_payload[16];
-  unsigned int second = gps_payload[17] << 8 | gps_payload[18];
+  unsigned int rawsecond = (gps_payload[17] << 8 | gps_payload[18]);
+  unsigned int second = rawsecond / 1000;
+  unsigned int millis = rawsecond % 1000;
+
+  unsigned int gps_week = gps_payload[5] << 8 | gps_payload[6];
+  uint32 gps_tow = (uint32)gps_payload[7] << 24
+                 | (uint32)gps_payload[8] << 16
+                 | (uint32)gps_payload[9] << 8
+                 | (uint32)gps_payload[10];
+  uint32 gps_tow_sec = gps_tow / 1000L;
 
   unsigned int numsvs = gps_payload[88];
 
   debug_int(year); debug("-"); debug_int(month); debug("-"); debug_int(day);
   debug(" ");
   debug_int(hour); debug(":"); debug_int(minute); debug(":");
-  debug_int(second/1000); debug("."); debug_int(second % 1000);
+  debug_int(second); debug("."); debug_int(millis);
   debug(", ");
   debug_int(numsvs);
   debug(" SVs\n");
+
+  debug("GPS week "); debug_int(gps_week);
+  debug(" + "); debug_long(gps_tow_sec);
+  debug("\n");
+
+  debug("UTC offset: ");
+  debug_int(gps_utc_offset(hour, minute, second, gps_tow_sec));
 }
 
 void gps_ack_message() {

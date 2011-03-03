@@ -147,13 +147,5 @@ extern void timer_init();
 extern void timer_set_interval(unsigned short);
 extern unsigned short timer_get_interval();
 
-extern char sec;
-
-static void print_time() {
-  uint32 ns = time_get_ns();
-//  debug_int((short)sec); debug("."); debug_long(ns); debug("\n");
-  debug_float((float)sec + (float)ns / 1000000000L); debug("\n");
-}
-
 #endif
 
