@@ -46,10 +46,10 @@ static char gps_ignore_payload;
 static char gps_message_valid;
 static unsigned int gps_payload_len;
 static unsigned int gps_payload_remain;
-static char gps_payload[GPS_BUFFER_SIZE];
+static unsigned char gps_payload[GPS_BUFFER_SIZE];
 static unsigned int gps_payload_checksum;
 static unsigned int msg_checksum;
-static char *gps_payload_ptr;
+static unsigned char *gps_payload_ptr;
 
 void gps_handle_message();
 
@@ -139,9 +139,55 @@ void gps_poll() {
   }
 }
 
+void gps_navdata_message() {
+}
+
+void gps_satdata_message() {
+}
+
+void gps_clockstatus_message() {
+}
+
+void gps_geodetic_message() {
+  unsigned int year = gps_payload[11] << 8 | gps_payload[12];
+  unsigned int month = gps_payload[13];
+  unsigned int day = gps_payload[14];
+  unsigned int hour = gps_payload[15];
+  unsigned int minute = gps_payload[16];
+  unsigned int second = gps_payload[17] << 8 | gps_payload[18];
+
+  unsigned int numsvs = gps_payload[88];
+
+  debug_int(year); debug("-"); debug_int(month); debug("-"); debug_int(day);
+  debug(" ");
+  debug_int(hour); debug(":"); debug_int(minute); debug(":");
+  debug_int(second/1000); debug("."); debug_int(second % 1000);
+  debug(", ");
+  debug_int(numsvs);
+  debug(" SVs\n");
+}
+
 void gps_handle_message() {
   unsigned char message_type = gps_payload[0];
-  debug("Got "); debug_int(gps_payload_len); 
-  debug(" byte message, type "); debug_int((int)message_type);
-  debug("\n");
+  switch(message_type) {
+    case 2:
+      gps_navdata_message();
+      break;
+    case 4:
+      gps_satdata_message();
+      break;
+    case 7:
+      gps_clockstatus_message();
+      break;
+    case 41:
+      gps_geodetic_message();
+      break;
+    case 9: case 27:
+      break;
+    default:
+      debug("Got "); debug_int(gps_payload_len);
+      debug(" byte message, type "); debug_int((int)message_type);
+      debug("\n");
+      break;
+  }
 }
