@@ -271,9 +271,14 @@ void gps_geodetic_message() {
   debug(" + "); debug_long(gps_tow_sec);
   debug("\n");
 
+  int utc_offset = gps_utc_offset(hour, minute, second, gps_tow_sec);
+
   debug("UTC offset: ");
-  debug_int(gps_utc_offset(hour, minute, second, gps_tow_sec));
+  debug_int(utc_offset);
   debug("\n");
+
+  time_set_date(gps_week, gps_tow_sec, utc_offset);
+
 }
 
 void gps_ack_message() {

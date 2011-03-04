@@ -3,10 +3,22 @@
 #include <string.h>
 
 volatile /* static */ char ints = 0;
-/* static */ char sec = 0;
 static signed char tickadj_upper = 0;
 static unsigned char tickadj_lower = 0;
 static unsigned char tickadj_phase = 0;
+
+static unsigned int gps_week = 0;
+static uint32 tow_sec_utc = 0;
+
+void time_set_date(unsigned int week, uint32 gps_tow, int offset) {
+  if ((int32)gps_tow + offset < 0) {
+    tow_sec_utc = gps_tow + 604800L + offset;
+    gps_week = week - 1;
+  } else {
+    tow_sec_utc = gps_tow + offset;
+    gps_week = week;
+  }
+}
 
 int32 make_ns(unsigned char i, unsigned short counter) {
   return i * NS_PER_INT + counter * NSPC(timer_get_interval());
@@ -26,12 +38,12 @@ static inline char adjust_for_offset(char *ints, unsigned short *ctr) {
     ++ *ints;
   }
 
-  if (*ints >= INT_PER_SEC) {
+  char offset = 0;
+  while (*ints >= INT_PER_SEC) {
     *ints -= INT_PER_SEC;
-    return 1;
-  } else {
-    return 0;
+    ++ offset;
   }
+  return offset;
 }
 
 int32 time_get_ns() {
@@ -42,12 +54,24 @@ int32 time_get_ns() {
   return make_ns(i, ctr);
 }
 
-uint32 time_get_ntp() {
+uint32 time_get_ntp_lower() {
   char i = ints + timer_get_pending();
   unsigned short ctr = timer_get_capture();
 
   adjust_for_offset(&i, &ctr);
   return make_ntp(i, ctr);
+}
+
+void time_get_ntp(uint32 *upper, uint32 *lower) {
+  *upper = 2524953600UL; /* GPS epoch - NTP epoch */
+  *upper += gps_week * 604800UL; /* 1 week */
+  *upper += tow_sec_utc;
+
+  char i = ints + timer_get_pending();
+  unsigned short ctr = timer_get_capture();
+  char add_sec = adjust_for_offset(&i, &ctr);
+  *upper += add_sec;
+  *lower = make_ntp(i, ctr);
 }
 
 int32 time_get_ns_capt() {
@@ -99,7 +123,6 @@ static int ledstate = 0;
 void timer_int() {
   ints++;
   if (ints == INT_PER_SEC) {
-    sec++;
     ints = 0;
     second_int();
   }
