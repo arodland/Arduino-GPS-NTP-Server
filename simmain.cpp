@@ -7,10 +7,6 @@
 
 volatile extern char pps_int;
 
-void second_int() {
-//  usleep(2500);
-}
-
 int main() {
   timer_init();
   gps_init();

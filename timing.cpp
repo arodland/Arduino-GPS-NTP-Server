@@ -116,7 +116,13 @@ void tickadj_run() {
   tickadj_adjust();
 }
 
-extern void second_int();
+void second_int() {
+  ++tow_sec_utc;
+  if (tow_sec_utc >= 604800L) {
+    tow_sec_utc -= 604800L;
+    ++gps_week;
+  }
+}
 
 static int ledstate = 0;
 

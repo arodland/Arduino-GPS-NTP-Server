@@ -46,8 +46,4 @@ void loop () {
   }
 }
 
-void second_int() {
-//  print_time();
-}
-
 // vim: ft=cpp
