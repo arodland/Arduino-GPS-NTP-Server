@@ -56,7 +56,7 @@ int32 time_get_ns() {
 
 uint32 time_get_ntp_lower() {
   char i = ints + timer_get_pending();
-  unsigned short ctr = timer_get_capture();
+  unsigned short ctr = timer_get_counter();
 
   adjust_for_offset(&i, &ctr);
   return make_ntp(i, ctr);
@@ -68,7 +68,7 @@ void time_get_ntp(uint32 *upper, uint32 *lower) {
   *upper += tow_sec_utc;
 
   char i = ints + timer_get_pending();
-  unsigned short ctr = timer_get_capture();
+  unsigned short ctr = timer_get_counter();
   char add_sec = adjust_for_offset(&i, &ctr);
   *upper += add_sec;
   *lower = make_ntp(i, ctr);
