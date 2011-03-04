@@ -150,7 +150,7 @@ void tickadj_set(signed char upper, unsigned char lower) {
 
 void tickadj_set_clocks(signed short clocks) {
   char negative = 0;
-  debug("tickadj = "); debug_int(clocks); debug("\n");
+//  debug("tickadj = "); debug_int(clocks); debug("\n");
   if (clocks < 0) {
     negative = 1;
     clocks = 0 - clocks;
@@ -241,7 +241,7 @@ void pll_run() {
   pps_history[0] = pps_ns_copy;
 
   int32 pps_filtered = med_mean_filter(pps_history);
-  debug("PPS filtered: "); debug_long(pps_filtered); debug("\n");
+//  debug("PPS filtered: "); debug_long(pps_filtered); debug("\n");
 
   short slew_rate = 0;
   char hardslew = 0;
@@ -250,12 +250,12 @@ void pll_run() {
     ints++;
     hardslew = 1;
     ppschange_int = 0;
-    debug("Slew ------\n");
+//    debug("Slew ------\n");
   } else if (pps_ns_copy > 32500000L && pps_filtered > 32500000L) {
     ints--;
     hardslew = 1;
     ppschange_int = 0;
-    debug("Slew ++++++\n");
+//    debug("Slew ++++++\n");
   } else if (pps_filtered > PLL_SLEW_THRESH || pps_filtered < -PLL_SLEW_THRESH) {
     slew_rate = pps_filtered / PLL_SLEW_DIV;
     if (pps_filtered > 10000) {
@@ -267,9 +267,9 @@ void pll_run() {
       slew_rate = PLL_SLEW_MAX;
     if (slew_rate < -PLL_SLEW_MAX)
       slew_rate = -PLL_SLEW_MAX;
-    debug("Slew "); debug_int(slew_rate); debug("\n");
+//    debug("Slew "); debug_int(slew_rate); debug("\n");
   } else {
-    debug("Slew 0\n");
+//    debug("Slew 0\n");
   }
 
   if (slew_rate >= -8 && slew_rate <= 8) {
@@ -283,30 +283,30 @@ void pll_run() {
   int32 ppschange = pps_ns_copy - pps_history[1] + (int32)last_slew_rate * 55;
 //  debug("PPS change raw: "); debug_long(ppschange); debug("\n");
   ppschange_int += ppschange;
-  debug("PPS change integrated: "); debug_long(ppschange_int); debug("\n");
+//  debug("PPS change integrated: "); debug_long(ppschange_int); debug("\n");
 
   if (!hardslew && ppschange_int < -PLL_RATE_DIV) {
     if (ppschange_int < -16 * PLL_RATE_DIV) {
-      debug("Speed ++\n");
+//      debug("Speed ++\n");
       clocks -= 16;
       ppschange_int = 0;
     } else {
-      debug("Speed +\n");
+//      debug("Speed +\n");
       clocks += ppschange_int / PLL_RATE_DIV;
       ppschange_int -= PLL_RATE_DIV * (ppschange_int / PLL_RATE_DIV);
     }
   } else if (!hardslew && ppschange_int > PLL_RATE_DIV) {
     if (ppschange_int > 16 * PLL_RATE_DIV) {
-      debug("Speed --\n");
+//      debug("Speed --\n");
       clocks += 16;
       ppschange_int = 0;
     } else {
-      debug("Speed -\n");
+//      debug("Speed -\n");
       clocks += ppschange_int / PLL_RATE_DIV;
       ppschange_int -= PLL_RATE_DIV * (ppschange_int / PLL_RATE_DIV);
     }
   } else {
-    debug("Speed =\n");
+//    debug("Speed =\n");
   }
 
   last_slew_rate = slew_rate;

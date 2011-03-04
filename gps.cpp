@@ -186,11 +186,11 @@ void gps_poll() {
 }
 
 void gps_navdata_message() {
+#if 0
   unsigned int mode1 = gps_payload[19];
   unsigned int mode2 = gps_payload[21];
   unsigned int svs = gps_payload[28];
   unsigned int pmode = mode1 & 0x7;
-
   debug("DGPS: ");
   if (mode1 & 1<<7)
     debug("OK");
@@ -211,6 +211,7 @@ void gps_navdata_message() {
   debug(" PMODE: ");
   debug_int(pmode);
   debug("\n");
+#endif
 }
 
 void gps_tracking_data_message() {
@@ -220,6 +221,7 @@ void gps_clockstatus_message() {
 }
 
 void gps_satvisible_message() {
+#if 0
   unsigned short num_visible = gps_payload[1];
   debug("Visible SVs:");
   for (int i = 0 ; i < num_visible; i++) {
@@ -227,17 +229,20 @@ void gps_satvisible_message() {
     debug_int((int)(gps_payload[2 + 5 * i]));
   }
   debug("\n");
+#endif
 }
 
 void gps_dgps_message() {
-/*  unsigned int dgps_source = gps_payload[1];
+#if 0
+  unsigned int dgps_source = gps_payload[1];
 
   debug("DGPS source: "); debug_int(dgps_source); debug(", PRN:");
   for (int i = 16; i < 52 ; i += 3) {
     debug(" ");
     debug_int((int)(gps_payload[i]));
   }
-  debug("\n"); */
+  debug("\n");
+#endif
 }
 
 void gps_geodetic_message() {
@@ -267,18 +272,9 @@ void gps_geodetic_message() {
   debug_int(numsvs);
   debug(" SVs\n");
 
-  debug("GPS week "); debug_int(gps_week);
-  debug(" + "); debug_long(gps_tow_sec);
-  debug("\n");
-
   int utc_offset = gps_utc_offset(hour, minute, second, gps_tow_sec);
 
-  debug("UTC offset: ");
-  debug_int(utc_offset);
-  debug("\n");
-
   time_set_date(gps_week, gps_tow_sec, utc_offset);
-
 }
 
 void gps_ack_message() {
@@ -319,19 +315,6 @@ void gps_handle_message() {
     case 41:
       gps_geodetic_message();
       break;
-    case 28:
-      debug("NavLib msg for sat ");
-      debug_int((int)gps_payload[6]);
-      debug(" sync flags ");
-      debug_int((int)gps_payload[37]);
-      debug("\n");
-      break;
-    case 29:
-      debug("NavLib DGPS msg for sat ");
-      debug_int((int)(gps_payload[1] << 8 + gps_payload[0]));
-      debug("\n");
-      break;
-
     case 9:
       break;
     default:
