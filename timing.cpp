@@ -20,58 +20,64 @@ void time_set_date(unsigned int week, uint32 gps_tow, int offset) {
   }
 }
 
+const uint32 PLL_OFFSET_NS = 15625000L;
+const uint32 PLL_OFFSET_NTP = 0x4000000UL;
+
 int32 make_ns(unsigned char i, unsigned short counter) {
-  return i * NS_PER_INT + counter * NSPC(timer_get_interval());
+  int32 ns = i * NS_PER_INT + counter * NSPC(timer_get_interval());
+  if (ns + PLL_OFFSET_NS > 1000000000L) {
+    ns -= 1000000000L;
+  }
+  ns += PLL_OFFSET_NS;
+  return ns;
 }
 
-int32 make_ntp(unsigned char i, unsigned short counter) {
-  return i * NTP_PER_INT + counter * NTPPC(timer_get_interval());
+int32 make_ns_carry(unsigned char i, unsigned short counter, char *add_sec) {
+  int32 ns = i * NS_PER_INT + counter * NSPC(timer_get_interval());
+  if (ns + PLL_OFFSET_NS > 1000000000L) {
+    ns -= 1000000000L;
+    *add_sec = 1;
+  } else
+    *add_sec = 0;
+  ns += PLL_OFFSET_NS;
+  return ns;
 }
 
-static inline char adjust_for_offset(char *ints, unsigned short *ctr) {
-  const unsigned short half_int = timer_get_interval() / 2;
+uint32 make_ntp(unsigned char i, unsigned short counter) {
+  uint32 ntp = i * NTP_PER_INT + counter * NTPPC(timer_get_interval());
+  ntp += PLL_OFFSET_NTP;
+  return ntp;
+}
 
-  if (*ctr < half_int) {
-    *ctr += half_int;
-  } else {
-    *ctr -= half_int;
-    ++ *ints;
-  }
-
-  char offset = 0;
-  while (*ints >= INT_PER_SEC) {
-    *ints -= INT_PER_SEC;
-    ++ offset;
-  }
-  return offset;
+uint32 make_ntp_carry(unsigned char i, unsigned short counter, char *add_sec) {
+  uint32 ntp = i * NTP_PER_INT + counter * NTPPC(timer_get_interval());
+  uint32 ntp_augmented = ntp + PLL_OFFSET_NTP;
+  *add_sec = ntp_augmented < ntp;
+  return ntp_augmented;
 }
 
 int32 time_get_ns() {
   char i = ints + timer_get_pending();
   unsigned short ctr = timer_get_counter();
-
-  adjust_for_offset(&i, &ctr);
   return make_ns(i, ctr);
 }
 
 uint32 time_get_ntp_lower() {
   char i = ints + timer_get_pending();
   unsigned short ctr = timer_get_counter();
-
-  adjust_for_offset(&i, &ctr);
   return make_ntp(i, ctr);
 }
 
 void time_get_ntp(uint32 *upper, uint32 *lower) {
+  char add_sec;
   *upper = 2524953600UL; /* GPS epoch - NTP epoch */
   *upper += gps_week * 604800UL; /* 1 week */
   *upper += tow_sec_utc;
 
   char i = ints + timer_get_pending();
   unsigned short ctr = timer_get_counter();
-  char add_sec = adjust_for_offset(&i, &ctr);
+  *lower = make_ntp_carry(i, ctr, &add_sec);
   *upper += add_sec;
-  *lower = make_ntp(i, ctr);
 }
 
 int32 time_get_ns_capt() {
@@ -80,7 +86,6 @@ int32 time_get_ns_capt() {
   if (ctr > timer_get_counter()) { /* Timer reset after capture */
     i--;
   }
-  adjust_for_offset(&i, &ctr);
   return make_ns(i, ctr);
 }
 
