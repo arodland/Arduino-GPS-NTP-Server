@@ -12,8 +12,16 @@ int32 make_ns(unsigned char ints, unsigned short counter) {
   return ints * NS_PER_INT + counter * NSPC(timer_get_interval());
 }
 
+int32 make_ntp(unsigned char ints, unsigned short counter) {
+  return ints * NTP_PER_INT + counter * NTPPC(timer_get_interval());
+}
+
 int32 time_get_ns() {
   return make_ns(ints + timer_get_pending(), timer_get_counter());
+}
+
+uint32 time_get_ntp() {
+  return make_ntp(ints + timer_get_pending(), timer_get_counter());
 }
 
 int32 time_get_ns_capt() {
@@ -23,6 +31,16 @@ int32 time_get_ns_capt() {
     i--;
   }
   return make_ns(i, timer_get_capture());
+}
+
+uint32 ns_to_ntp(uint32 ns) {
+  const unsigned int chi = 0x4b82;
+  const unsigned int clo = 0xfa09;
+  const unsigned int xhi = ns >> 16;
+  const unsigned int xlo = ns & 0xffff;
+  uint32 crossTerms = xhi*clo + xlo*chi;
+  uint32 highTerm = xhi*chi;
+  return (ns << 2) + highTerm + (crossTerms >> 16) + 1;
 }
 
 void tickadj_adjust() {

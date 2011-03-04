@@ -147,6 +147,17 @@ inline uint32 NSPI(unsigned int tm) {
 
 const uint32 NS_PER_INT = (100000000UL / ((CPU_CLOCK / PREDIV) / DEF_TIMER_VAL));
 
+const uint32 NTP_PER_COUNT = (0x100000000ULL / (CPU_CLOCK / PREDIV));
+
+inline uint32 NTPPC(unsigned int tm) {
+  return ((tm / 2 + NTP_PER_COUNT * DEF_TIMER_VAL) / tm);
+}
+
+inline uint32 NTPPI(unsigned int tm) {
+  return (0x100000000ULL / ((CPU_CLOCK / PREDIV) / tm));
+}
+
+const uint32 NTP_PER_INT = (0x100000000ULL / ((CPU_CLOCK / PREDIV) / DEF_TIMER_VAL));
 
 extern void timer_init();
 extern void timer_set_interval(unsigned short);
