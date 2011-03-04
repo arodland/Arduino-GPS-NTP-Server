@@ -37,6 +37,7 @@ void loop () {
         if (pps_int) {
           pll_run();
         }
+        ether_poll();
         gps_poll();
         ether_poll();
 #if 0
