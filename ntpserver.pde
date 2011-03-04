@@ -1,6 +1,7 @@
 #include "hwdep.h"
 #include "timing.h"
 #include "gps.h"
+#include "ethernet.h"
 
 volatile extern char pps_int;
 
@@ -17,6 +18,7 @@ void setup () {
 //  tickadj_set_clocks(-3552); /* +222 ppm */
 //  tickadj_set_clocks(0);
   gps_init();
+  ether_init();
 }
 
 void loop () {
@@ -36,6 +38,7 @@ void loop () {
           pll_run();
         }
         gps_poll();
+        ether_poll();
 #if 0
       }
     }
