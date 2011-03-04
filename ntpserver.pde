@@ -20,25 +20,27 @@ void setup () {
 }
 
 void loop () {
+  while (1) {
 #if 0
-  if (Serial.available()) {
-    int chin = Serial.read();
-    Serial1.print(chin, BYTE);
-  }
-
-  if (Serial1.available()) {
-    int chin = Serial1.read();
-    Serial.print(chin, BYTE);
-    if (chin == '\x0a') {
-#endif
-      if (pps_int) {
-        pll_run();
-      }
-      gps_poll();
-#if 0
+    if (Serial.available()) {
+      int chin = Serial.read();
+      Serial1.print(chin, BYTE);
     }
-  }
+
+    if (Serial1.available()) {
+      int chin = Serial1.read();
+      Serial.print(chin, BYTE);
+      if (chin == '\x0a') {
 #endif
+        if (pps_int) {
+          pll_run();
+        }
+        gps_poll();
+#if 0
+      }
+    }
+#endif
+  }
 }
 
 void second_int() {
