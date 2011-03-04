@@ -6,8 +6,6 @@
 
 #include <stdio.h>
 
-#define CPU_CLOCK 16000000L
-
 #define debug(x) printf("%s", x)
 #define debug_int(x) printf("%d", x)
 #define debug_long(x) printf("%d", (signed int)x)
@@ -70,8 +68,6 @@ inline void delay(int millis) {
 #include "WProgram.h"
 #include "HardwareSerial.h"
 
-#define CPU_CLOCK 16000000L
-
 #if 1
 #define debug(x) Serial.print(x)
 #define debug_int(x) Serial.print(x)
@@ -131,17 +127,26 @@ inline void gps_set_baud(long baud) {
 
 #include "timing.h"
 
-#define DEF_TIMER_VAL 62500
-#define MAX_TIMER_VAL 65535
+const uint32 CPU_CLOCK = F_CPU; /* Defined by -DF_CPU */
+const unsigned int DEF_TIMER_VAL = 62500;
+const unsigned int MAX_TIMER_VAL = 65535;
 
-#define PREDIV 8
-#define NS_PER_COUNT (1000000000L / (CPU_CLOCK / PREDIV))
+const unsigned int PREDIV = 8;
+
+const uint32 NS_PER_COUNT = (1000000000L / (CPU_CLOCK / PREDIV));
+const unsigned int INT_PER_SEC = ((CPU_CLOCK / PREDIV) / DEF_TIMER_VAL);
 
 // adding tm/2 here biases by 1/2 so it rounds :)
-#define NSPC(tm) ((tm / 2 + NS_PER_COUNT * DEF_TIMER_VAL) / tm)
-#define NSPI(tm) (1000000000L / ((CPU_CLOCK / PREDIV) / tm))
-#define NS_PER_INT NSPI(DEF_TIMER_VAL)
-#define INT_PER_SEC ((CPU_CLOCK / PREDIV) / DEF_TIMER_VAL)
+inline uint32 NSPC(unsigned int tm) {
+  return ((tm / 2 + NS_PER_COUNT * DEF_TIMER_VAL) / tm);
+}
+
+inline uint32 NSPI(unsigned int tm) {
+  return (100000000L / ((CPU_CLOCK / PREDIV) / tm));
+}
+
+const uint32 NS_PER_INT = (100000000UL / ((CPU_CLOCK / PREDIV) / DEF_TIMER_VAL));
+
 
 extern void timer_init();
 extern void timer_set_interval(unsigned short);
