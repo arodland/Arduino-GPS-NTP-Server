@@ -8,20 +8,46 @@ static signed char tickadj_upper = 0;
 static unsigned char tickadj_lower = 0;
 static unsigned char tickadj_phase = 0;
 
-int32 make_ns(unsigned char ints, unsigned short counter) {
-  return ints * NS_PER_INT + counter * NSPC(timer_get_interval());
+int32 make_ns(unsigned char i, unsigned short counter) {
+  return i * NS_PER_INT + counter * NSPC(timer_get_interval());
 }
 
-int32 make_ntp(unsigned char ints, unsigned short counter) {
-  return ints * NTP_PER_INT + counter * NTPPC(timer_get_interval());
+int32 make_ntp(unsigned char i, unsigned short counter) {
+  return i * NTP_PER_INT + counter * NTPPC(timer_get_interval());
+}
+
+static inline char adjust_for_offset(char *ints, unsigned short *ctr) {
+  const unsigned short half_int = timer_get_interval() / 2;
+
+  if (*ctr < half_int) {
+    *ctr += half_int;
+  } else {
+    *ctr -= half_int;
+    ++ *ints;
+  }
+
+  if (*ints >= INT_PER_SEC) {
+    *ints -= INT_PER_SEC;
+    return 1;
+  } else {
+    return 0;
+  }
 }
 
 int32 time_get_ns() {
-  return make_ns(ints + timer_get_pending(), timer_get_counter());
+  char i = ints + timer_get_pending();
+  unsigned short ctr = timer_get_counter();
+
+  adjust_for_offset(&i, &ctr);
+  return make_ns(i, ctr);
 }
 
 uint32 time_get_ntp() {
-  return make_ntp(ints + timer_get_pending(), timer_get_counter());
+  char i = ints + timer_get_pending();
+  unsigned short ctr = timer_get_capture();
+
+  adjust_for_offset(&i, &ctr);
+  return make_ntp(i, ctr);
 }
 
 int32 time_get_ns_capt() {
@@ -30,7 +56,8 @@ int32 time_get_ns_capt() {
   if (ctr > timer_get_counter()) { /* Timer reset after capture */
     i--;
   }
-  return make_ns(i, timer_get_capture());
+  adjust_for_offset(&i, &ctr);
+  return make_ns(i, ctr);
 }
 
 uint32 ns_to_ntp(uint32 ns) {
@@ -158,9 +185,6 @@ static int32 ppschange_int;
 static short clocks = -3439; /* 213.2 ppm */
 //static short clocks = 0;
 
-// One half of a timer interrupt to minimize the odds
-// of having a PPS int hit within a few cycles of a timer int
-#define PLL_OFFSET 15625000
 #define PLL_SLEW_DIV 512L
 #define PLL_SLEW_THRESH 1024L
 #define PLL_SLEW_MAX 8192L
@@ -168,7 +192,7 @@ static short clocks = -3439; /* 213.2 ppm */
 
 void pll_run() {
   pps_int = 0;
-  pps_ns_copy = pps_ns - PLL_OFFSET;
+  pps_ns_copy = pps_ns;
   if (pps_ns_copy < 1000000000L)
     pps_ns_copy += 1000000000L;
 
@@ -177,10 +201,6 @@ void pll_run() {
 
   if (pps_ns_copy > 500000000L) {
     pps_ns_copy -= 1000000000L;
-  }
-
-  if (pps_ns_copy == -31250000L) {
-    pps_ns_copy = 0;
   }
 
   debug("PPS: "); debug_long(pps_ns_copy); debug("\n");
