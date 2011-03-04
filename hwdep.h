@@ -133,7 +133,7 @@ const unsigned int MAX_TIMER_VAL = 65535;
 
 const unsigned int PREDIV = 8;
 
-const uint32 NS_PER_COUNT = (1000000000L / (CPU_CLOCK / PREDIV));
+const uint32 NS_PER_COUNT = (1000000000UL / (CPU_CLOCK / PREDIV));
 const unsigned int INT_PER_SEC = ((CPU_CLOCK / PREDIV) / DEF_TIMER_VAL);
 
 // adding tm/2 here biases by 1/2 so it rounds :)
@@ -142,10 +142,10 @@ inline uint32 NSPC(unsigned int tm) {
 }
 
 inline uint32 NSPI(unsigned int tm) {
-  return (100000000L / ((CPU_CLOCK / PREDIV) / tm));
+  return (1000000000UL / ((CPU_CLOCK / PREDIV) / tm));
 }
 
-const uint32 NS_PER_INT = (100000000UL / ((CPU_CLOCK / PREDIV) / DEF_TIMER_VAL));
+const uint32 NS_PER_INT = (1000000000UL / ((CPU_CLOCK / PREDIV) / DEF_TIMER_VAL));
 
 const uint32 NTP_PER_COUNT = (0x100000000ULL / (CPU_CLOCK / PREDIV));
 
