@@ -33,7 +33,7 @@ void ether_init() {
 
 static const char ntp_packet_template[48] = {
   4 /* Mode: Server reply */ | 3<<3 /* Version: NTPv3 */,
-  1 /* Stratum */, 9 /* Poll: 512sec */, -19 /* Precision: 0.5 usec */,
+  1 /* Stratum */, 9 /* Poll: 512sec */, -21 /* Precision: 0.5 usec */,
   0, 0, 0, 0 /* Root Delay */,
   0, 0, 0, 10 /* Root Dispersion */,
   'G', 'P', 'S', 0 /* Reference ID */,
