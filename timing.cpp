@@ -195,7 +195,7 @@ void tickadj_set_ppm(signed short ppm) {
   }
 }
 
-inline int32 med_mean_filter(int32 history[5]) {
+inline int32 med_mean_filter_32(int32 history[5]) {
   int32 tmp;
   int32 copy[5];
   memcpy(copy, history, 5 * sizeof(int32));
@@ -213,6 +213,23 @@ inline int32 med_mean_filter(int32 history[5]) {
   return ((copy[1] + copy[2] + copy[3]) / 3);
 }
 
+inline int med_mean_filter_16(int history[5]) {
+  int tmp;
+  int copy[5];
+  memcpy(copy, history, 5 * sizeof(int));
+
+  for (char i = 0 ; i < 4 ; i++) {
+    for (char j = i + 1 ; j < 5 ; j++) {
+      if (copy[j] < copy[i]) {
+        tmp = copy[i];
+        copy[i] = copy[j];
+        copy[j] = tmp;
+      }
+    }
+  }
+
+  return ((copy[1] + copy[2] + copy[3]) / 3);
+}
 volatile extern char pps_int;
 volatile extern uint32 pps_ns;
 volatile extern char ints;
@@ -222,13 +239,16 @@ static int32 pps_history[5];
 static short last_slew_rate = 0;
 static int32 ppschange_int;
 
-static short clocks = -3439; /* 213.2 ppm */
+static short clocks = 0;
 //static short clocks = 0;
 
 #define PLL_SLEW_DIV 512L
 #define PLL_SLEW_THRESH 1024L
 #define PLL_SLEW_MAX 8192L
 #define PLL_RATE_DIV 2048L
+
+void tempadj_run();
+static int tempadj = 0;
 
 void pll_run() {
   pps_int = 0;
@@ -251,7 +271,7 @@ void pll_run() {
   pps_history[1] = pps_history[0];
   pps_history[0] = pps_ns_copy;
 
-  int32 pps_filtered = med_mean_filter(pps_history);
+  int32 pps_filtered = med_mean_filter_32(pps_history);
 //  debug("PPS filtered: "); debug_long(pps_filtered); debug("\n");
 
   short slew_rate = 0;
@@ -323,7 +343,38 @@ void pll_run() {
   last_slew_rate = slew_rate;
 
   debug("PLL: "); debug_int(clocks); debug("\n");
-  debug("Temp: "); debug_float(tempprobe_gettemp()); debug("\n");
 
-  tickadj_set_clocks(clocks + slew_rate);
+  tempadj_run();
+
+  tickadj_set_clocks(clocks + slew_rate + tempadj);
+}
+
+static int tempcorr_history[5];
+static int tempadj_samples = 0;
+
+void tempadj_run() {
+  float temp = tempprobe_gettemp();
+  int rawcorr = 1893.0 - 248.5 * temp;
+  tempcorr_history[4] = tempcorr_history[3];
+  tempcorr_history[3] = tempcorr_history[2];
+  tempcorr_history[2] = tempcorr_history[1];
+  tempcorr_history[1] = tempcorr_history[0];
+  tempcorr_history[0] = rawcorr;
+
+  int target = med_mean_filter_16(tempcorr_history);
+  debug("Temp: "); debug_float(tempprobe_gettemp());
+
+  if (tempadj_samples < 5) {
+    tempadj_samples ++;
+  } else if (tempadj_samples == 5) {
+    tempadj = target;
+    tempadj_samples ++;
+  } else {
+    if (target > tempadj)
+      tempadj++;
+    else if (target < tempadj)
+      tempadj--;
+  }
+
+  debug(", adj: "); debug_int(tempadj); debug("\n");
 }
