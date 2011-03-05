@@ -1,4 +1,5 @@
 #include "hwdep.h"
+#include "tempprobe.h"
 
 #include <string.h>
 
@@ -143,6 +144,7 @@ void timer_int() {
   digitalWrite(13, (ledstate & 4) ? 1 : 0);
 #endif
   tickadj_run();
+  tempprobe_int();
 }
 
 void tickadj_set(signed char upper, unsigned char lower) {
@@ -317,5 +319,7 @@ void pll_run() {
   last_slew_rate = slew_rate;
 
   debug("PLL: "); debug_int(clocks); debug("\n");
+  debug("Temp: "); debug_float(tempprobe_gettemp()); debug("\n");
+
   tickadj_set_clocks(clocks + slew_rate);
 }

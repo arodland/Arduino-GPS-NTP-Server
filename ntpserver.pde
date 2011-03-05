@@ -2,6 +2,7 @@
 #include "timing.h"
 #include "gps.h"
 #include "ethernet.h"
+#include "tempprobe.h"
 
 volatile extern char pps_int;
 
@@ -15,35 +16,19 @@ void setup () {
   }
   Serial.begin(115200);
   timer_init();
-//  tickadj_set_clocks(-3552); /* +222 ppm */
-//  tickadj_set_clocks(0);
   gps_init();
   ether_init();
+  tempprobe_init();
 }
 
 void loop () {
   while (1) {
-#if 0
-    if (Serial.available()) {
-      int chin = Serial.read();
-      Serial1.print(chin, BYTE);
+    if (pps_int) {
+      pll_run();
     }
-
-    if (Serial1.available()) {
-      int chin = Serial1.read();
-      Serial.print(chin, BYTE);
-      if (chin == '\x0a') {
-#endif
-        if (pps_int) {
-          pll_run();
-        }
-        ether_poll();
-        gps_poll();
-        ether_poll();
-#if 0
-      }
-    }
-#endif
+    ether_poll();
+    gps_poll();
+    ether_poll();
   }
 }
 
