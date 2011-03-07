@@ -14,7 +14,7 @@ void ether_poll() {
 #include <Ethernet.h>
 #include <Udp.h>
 
-unsigned char mac[] = { 0x00, 0x15, 0xc5, 0x5a, 0xd1, 0x06 };
+unsigned char mac[] = { 0x9a, 0xa2, 0xda, 0x00, 0x32, 0xd4 };
 unsigned char ip[] = { 192, 168, 6, 115 };
 
 Server debugserver = Server(1000);
