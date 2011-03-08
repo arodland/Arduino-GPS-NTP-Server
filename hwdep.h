@@ -118,7 +118,6 @@ inline void gps_write(const char *data) {
 }
 
 inline void gps_writebyte(const char ch) {
-  Serial.print(ch, BYTE);
   GPSPORT.print(ch, BYTE);
 }
 
