@@ -32,6 +32,7 @@ void loop () {
     ether_poll();
     while (schedule_ints) {
       tempprobe_run();
+      ether_dhcp_poll();
       schedule_ints--;
     }
   }

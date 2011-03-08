@@ -103,7 +103,9 @@ private:
    int                  _socket;
    uint8_t*             _hostName;
    int                  _useHostNameAsClientIdentifier;
+public:
    DhcpState_t          _state;
+private:
    uint32_t             _secsUntilRenewal;
    unsigned long        _lastSendMillis;
    unsigned long        _lastPollMillis;

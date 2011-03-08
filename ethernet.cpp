@@ -21,11 +21,8 @@ Server debugserver = Server(1000);
 Client debugclient = Client(MAX_SOCK_NUM);
 
 void ether_init() {
-
   EthernetDHCP.begin(mac);
-
   Udp.begin(123);
-
   debugserver.begin();
 }
 
@@ -102,7 +99,6 @@ void ether_poll() {
   unsigned int port;
   unsigned int len;
 
-
   if (Udp.available()) {
     time_get_ntp(&recv_ts_upper, &recv_ts_lower);
     len = Udp.readPacket(buf, 256, clientip, &port);
@@ -117,5 +113,20 @@ void ether_poll() {
     debugclient = debugserver.available();
   }
 }
+
+static unsigned int dhcp_timer = 0;
+void ether_dhcp_poll() {
+  dhcp_timer++;
+  /* If we're waiting for something from the server, then poll every int.
+   * Otherwise, poll once per minute plus one int (just so it doesn't always
+   * land at the same point in the second :)
+   */
+  if (EthernetDHCP._state != DhcpStateLeased
+      || dhcp_timer >= 32 * 60L + 1) {
+    dhcp_timer = 0;
+    EthernetDHCP.poll();
+  }
+}
+
 
 #endif
