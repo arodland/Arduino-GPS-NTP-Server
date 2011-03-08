@@ -12,21 +12,19 @@ void ether_poll() {
 #else
 
 #include <Ethernet.h>
+#include <EthernetDHCP.h>
 #include <Udp.h>
 
 unsigned char mac[] = { 0x9a, 0xa2, 0xda, 0x00, 0x32, 0xd4 };
-unsigned char ip[] = { 192, 168, 6, 115 };
 
 Server debugserver = Server(1000);
 Client debugclient = Client(MAX_SOCK_NUM);
 
 void ether_init() {
-  Ethernet.begin(mac, ip);
 
-  unsigned char destip[] = { 224, 0, 0, 2 };
-  unsigned char msg[] = "Hi";
+  EthernetDHCP.begin(mac);
+
   Udp.begin(123);
-  Udp.sendPacket(msg, 2, destip, 123);
 
   debugserver.begin();
 }
