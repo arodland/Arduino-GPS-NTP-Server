@@ -43,7 +43,7 @@ void tempprobe_int() {
   if (count == 0) {
     tempprobe.requestTemperaturesByAddress(probe_addr);
     count++;
-  } else if (count == 24) {
+  } else if (count == 26) {
     tempprobe_temp = tempprobe.getTempC(probe_addr);
     temp_valid = 1;
     count = 0;
