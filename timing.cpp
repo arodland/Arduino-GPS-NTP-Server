@@ -4,6 +4,10 @@
 #include <string.h>
 
 volatile /* static */ char ints = 0;
+/* For timing medium-resolution events like tempprobe reading and DHCP
+ * renewal that shouldn't run with interrupts disabled
+ */
+volatile char schedule_ints = 0;
 static signed char tickadj_upper = 0;
 static unsigned char tickadj_lower = 0;
 static unsigned char tickadj_phase = 0;
@@ -138,13 +142,13 @@ void timer_int() {
     ints = 0;
     second_int();
   }
+  tickadj_run();
 
 #ifndef SIMULATE
   ledstate++;
   digitalWrite(13, (ledstate & 4) ? 1 : 0);
 #endif
-  tickadj_run();
-  tempprobe_int();
+  schedule_ints++;
 }
 
 void tickadj_set(signed char upper, unsigned char lower) {

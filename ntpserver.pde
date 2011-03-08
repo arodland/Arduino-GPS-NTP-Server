@@ -5,6 +5,7 @@
 #include "tempprobe.h"
 
 volatile extern char pps_int;
+volatile extern char schedule_ints;
 
 void setup () {
   pinMode(13, OUTPUT);
@@ -29,6 +30,10 @@ void loop () {
     ether_poll();
     gps_poll();
     ether_poll();
+    while (schedule_ints) {
+      tempprobe_run();
+      schedule_ints--;
+    }
   }
 }
 

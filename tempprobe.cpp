@@ -34,8 +34,8 @@ void tempprobe_init() {
   tempprobe.setResolution(probe_addr, 12);
 }
 
-/* Called every 32.5ms from timer_int */
-void tempprobe_int() {
+/* Called every 32.5ms by mainloop */
+void tempprobe_run() {
   if (!have_probe) {
     return;
   }
