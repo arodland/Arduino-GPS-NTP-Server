@@ -1,0 +1,12 @@
+* med_mean_filter is called "trimmed mean"
+* Look into FLL and PLL and adjusting their relative contributions depending
+  on how stable the clock is currently.
+* Next cycle after fast slew, use the delta between the current and last PPS
+  measurements (correcting for the fast slew amount) to adjust the freq
+  directly instead of allowing the PLL to work.
+* If GPS sync is lost (no serial or serial reports <3D fix) then the NTP
+  "reference time" should stop counting -- this lets us keep reporting
+  freerun time, while letting peers know that we're not fully synced anymore.
+* We can/should also increase the "root dispersion" value in proportion to
+  time spent free-running.
+
