@@ -290,12 +290,12 @@ void pll_run() {
     ppschange_int += pps_ns_copy / 24 + pps_filtered / 16;
   }
 
-  if (lasthardslew) {
+  if (!hardslew && lasthardslew) {
     int32 ppschange = pps_ns_copy - pps_history[1] + 
       (int32)lasthardslew * 31250000L;
     /* 62.5 ns per clock */
     clocks = (ppschange * 2) / 125;
-  } else {
+  } else if (!hardslew) {
     /* The ideal factor for last_slew_rate here would be 62.5 (1000 / 16) but we
      * undercorrect a little bit, leaving a residual that will help to keep us
      * from settling in a state where slew != 0
