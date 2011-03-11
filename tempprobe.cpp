@@ -46,6 +46,8 @@ void tempprobe_run() {
   } else if (count == 26) {
     tempprobe_temp = tempprobe.getTempC(probe_addr);
     temp_valid = 1;
+    count++;
+  } else if (count == 96) {
     count = 0;
   } else {
     count++;
