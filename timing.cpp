@@ -221,6 +221,7 @@ static int32 pps_ns_copy = 0;
 static int32 pps_history[5];
 static short last_slew_rate = 0;
 static int32 ppschange_int;
+static char lasthardslew = 0;
 
 static short clocks = -3439; /* 213.2 ppm */
 //static short clocks = 0;
@@ -259,13 +260,15 @@ void pll_run() {
 
   if (pps_ns_copy < -32500000L && pps_filtered < -32500000L) {
     ints++;
-    hardslew = 1;
+    hardslew = -1;
     ppschange_int = 0;
+    clocks = 0;
 //    debug("Slew ------\n");
   } else if (pps_ns_copy > 32500000L && pps_filtered > 32500000L) {
     ints--;
     hardslew = 1;
     ppschange_int = 0;
+    clocks = 0;
 //    debug("Slew ++++++\n");
   } else if (pps_filtered > PLL_SLEW_THRESH || pps_filtered < -PLL_SLEW_THRESH) {
     slew_rate = pps_filtered / PLL_SLEW_DIV;
@@ -287,40 +290,47 @@ void pll_run() {
     ppschange_int += pps_ns_copy / 24 + pps_filtered / 16;
   }
 
-/* The ideal factor for last_slew_rate here would be 62.5 (1000 / 16) but we
- * undercorrect a little bit, leaving a residual that will help to keep us from
- * settling in a state where slew != 0
- */
-  int32 ppschange = pps_ns_copy - pps_history[1] + (int32)last_slew_rate * 55;
-//  debug("PPS change raw: "); debug_long(ppschange); debug("\n");
-  ppschange_int += ppschange;
-//  debug("PPS change integrated: "); debug_long(ppschange_int); debug("\n");
-
-  if (!hardslew && ppschange_int < -PLL_RATE_DIV) {
-    if (ppschange_int < -16 * PLL_RATE_DIV) {
-//      debug("Speed ++\n");
-      clocks -= 16;
-      ppschange_int = 0;
-    } else {
-//      debug("Speed +\n");
-      clocks += ppschange_int / PLL_RATE_DIV;
-      ppschange_int -= PLL_RATE_DIV * (ppschange_int / PLL_RATE_DIV);
-    }
-  } else if (!hardslew && ppschange_int > PLL_RATE_DIV) {
-    if (ppschange_int > 16 * PLL_RATE_DIV) {
-//      debug("Speed --\n");
-      clocks += 16;
-      ppschange_int = 0;
-    } else {
-//      debug("Speed -\n");
-      clocks += ppschange_int / PLL_RATE_DIV;
-      ppschange_int -= PLL_RATE_DIV * (ppschange_int / PLL_RATE_DIV);
-    }
+  if (lasthardslew) {
+    int32 ppschange = pps_ns_copy - pps_history[1] + 
+      (int32)lasthardslew * 31250000L;
+    /* 62.5 ns per clock */
+    clocks = (ppschange * 2) / 125;
   } else {
-//    debug("Speed =\n");
+    /* The ideal factor for last_slew_rate here would be 62.5 (1000 / 16) but we
+     * undercorrect a little bit, leaving a residual that will help to keep us
+     * from settling in a state where slew != 0
+     */
+    int32 ppschange = pps_ns_copy - pps_history[1] + (int32)last_slew_rate * 61;
+    // debug("PPS change raw: "); debug_long(ppschange); debug("\n");
+    ppschange_int += ppschange;
+    // debug("PPS change integrated: "); debug_long(ppschange_int); debug("\n");
+    if (ppschange_int < -PLL_RATE_DIV) {
+      if (ppschange_int < -16 * PLL_RATE_DIV) {
+        // debug("Speed ++\n");
+        clocks -= 16;
+        ppschange_int = 0;
+      } else {
+        // debug("Speed +\n");
+        clocks += ppschange_int / PLL_RATE_DIV;
+        ppschange_int -= PLL_RATE_DIV * (ppschange_int / PLL_RATE_DIV);
+      }
+    } else if (ppschange_int > PLL_RATE_DIV) {
+      if (ppschange_int > 16 * PLL_RATE_DIV) {
+        // debug("Speed --\n");
+        clocks += 16;
+        ppschange_int = 0;
+      } else {
+        // debug("Speed -\n");
+        clocks += ppschange_int / PLL_RATE_DIV;
+        ppschange_int -= PLL_RATE_DIV * (ppschange_int / PLL_RATE_DIV);
+      }
+    } else {
+      // debug("Speed =\n");
+    }
   }
 
   last_slew_rate = slew_rate;
+  lasthardslew = hardslew;
 
   debug("PLL: "); debug_int(clocks); debug("\n");
   debug("Temp: "); debug_float(tempprobe_gettemp()); debug("\n");
