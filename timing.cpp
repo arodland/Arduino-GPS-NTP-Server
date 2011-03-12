@@ -171,8 +171,11 @@ void tickadj_set_clocks(signed short clocks) {
   unsigned char lower = clocks % 256;
   
   if (negative) {
-    upper = (0 - upper) - 1;
+    upper = 0 - upper;
     lower = 0 - lower;
+    if (lower)
+      upper = upper - 1;
+
     /* lower is always interpreted as addition, so the opposite of
        e.g. 1 + 16/256 is -2 + 240/256.
     */
