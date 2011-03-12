@@ -162,25 +162,15 @@ void tickadj_set(signed char upper, unsigned char lower) {
 void tickadj_set_clocks(signed short clocks) {
   char negative = 0;
 //  debug("tickadj = "); debug_int(clocks); debug("\n");
-  if (clocks < 0) {
-    negative = 1;
-    clocks = 0 - clocks;
-  }
-  
-  signed char upper = clocks / 256;
-  unsigned char lower = clocks % 256;
-  
-  if (negative) {
-    upper = 0 - upper;
-    lower = 0 - lower;
-    if (lower)
-      upper = upper - 1;
-
-    /* lower is always interpreted as addition, so the opposite of
-       e.g. 1 + 16/256 is -2 + 240/256.
-    */
-  }
-  tickadj_set(upper, lower);
+  union {
+    struct {
+      unsigned char lower;
+      signed char upper;
+    };
+    unsigned short whole;
+  } pun;
+  pun.whole = clocks;
+  tickadj_set(pun.upper, pun.lower);
 }
 
 /* Positive PPM will make the clock run fast, negative slow */
