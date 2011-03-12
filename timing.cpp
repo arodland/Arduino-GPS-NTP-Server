@@ -229,8 +229,8 @@ static char lasthardslew = 0;
 static short clocks = -3439; /* 213.2 ppm */
 //static short clocks = 0;
 
-#define PLL_SLEW_DIV 512L
-#define PLL_SLEW_THRESH 1024L
+#define PLL_SLEW_DIV 500L
+#define PLL_SLEW_THRESH 1000L
 #define PLL_SLEW_MAX 8192L
 #define PLL_RATE_DIV 2048L
 
@@ -273,8 +273,8 @@ void pll_run() {
     ppschange_int = 0;
     clocks = 0;
 //    debug("Slew ++++++\n");
-  } else if (pps_filtered > PLL_SLEW_THRESH || pps_filtered < -PLL_SLEW_THRESH) {
-    slew_rate = pps_filtered / PLL_SLEW_DIV;
+  } else if (pps_filtered >= PLL_SLEW_THRESH || pps_filtered <= -PLL_SLEW_THRESH) {
+    slew_rate = pps_filtered / PLL_SLEW_DIV + ((pps_filtered > 0) ? 2 : -2);
     if (pps_filtered > 10000) {
       slew_rate += 50;
     } else if (pps_filtered < -100000) {
@@ -289,8 +289,8 @@ void pll_run() {
 //    debug("Slew 0\n");
   }
 
-  if (slew_rate >= -8 && slew_rate <= 8) {
-    ppschange_int += pps_ns_copy / 24 + pps_filtered / 16;
+  if (slew_rate >= -6 && slew_rate <= 6) {
+    ppschange_int += pps_ns_copy / 50 + pps_filtered / 25;
   }
 
   if (!hardslew && lasthardslew) {
