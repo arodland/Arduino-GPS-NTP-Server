@@ -275,8 +275,10 @@ void pll_run() {
     if (slew_rate < -PLL_SLEW_MAX)
       slew_rate = -PLL_SLEW_MAX;
 //    debug("Slew "); debug_int(slew_rate); debug("\n");
-  } else {
-//    debug("Slew 0\n");
+  } else if (pps_filtered > 0) {
+    slew_rate = 1;
+  } else if (pps_filtered < 0) {
+    slew_rate = -1;
   }
 
   if (slew_rate >= -6 && slew_rate <= 6) {
