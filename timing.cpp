@@ -285,16 +285,18 @@ void pll_run() {
     clocks = 0;
 //    debug("Slew ++++++\n");
   } else if (pps_filtered >= PLL_SLEW_THRESH || pps_filtered <= -PLL_SLEW_THRESH) {
-    slew_rate = pps_filtered / PLL_SLEW_DIV + ((pps_filtered > 0) ? 2 : -2);
-    if (pps_filtered > 10000) {
-      slew_rate += 50;
-    } else if (pps_filtered < -100000) {
-      slew_rate -= 50;
-    }
-    if (slew_rate > PLL_SLEW_MAX)
+    if (pps_filtered >= PLL_SLEW_MAX * PLL_SLEW_DIV) {
       slew_rate = PLL_SLEW_MAX;
-    if (slew_rate < -PLL_SLEW_MAX)
+    } else if (pps_filtered <= -PLL_SLEW_MAX * PLL_SLEW_DIV) {
       slew_rate = -PLL_SLEW_MAX;
+    } else {
+      slew_rate = pps_filtered / PLL_SLEW_DIV + ((pps_filtered > 0) ? 2 : -2);
+      if (pps_filtered > 10000) {
+        slew_rate += 50;
+      } else if (pps_filtered < -100000) {
+        slew_rate -= 50;
+      }
+    }
 //    debug("Slew "); debug_int(slew_rate); debug("\n");
   } else if (pps_filtered > 0) {
     slew_rate = 1;
