@@ -53,6 +53,8 @@ void gps_enable_dgps() {
   //gps_write_sirf("\xaa\x00\x00\x00\x00\x00", 6);
   /* Cmd: 170, PRN: 138, mode: testing, timeout: auto, 2 bytes unused */
   gps_write_sirf("\xaa\x8a\x00\x00\x00\x00", 6);
+  /* Cmd: 166, Mode: Enable one, Message ID: 8, Rate: 1Hz, 4 bytes unused */
+  gps_write_sirf("\xa0\x00\x08\x01\x00\x00\x00\x00", 8);
 
 }
 
