@@ -206,6 +206,26 @@ inline int32 med_mean_filter(int32 history[5]) {
   return ((copy[1] + copy[2] + copy[3]) / 3);
 }
 
+inline int32 median_filter(int32 history[5]) {
+  int32 low = history[0], mid = history[1], high = history[2];
+  if (low > mid) {
+    int32 tmp = low;
+    low = mid;
+    mid = tmp;
+  }
+  if (mid < high) {
+    return mid;
+  } else {
+    if (high > low) {
+      return high;
+    } else {
+      return low;
+    }
+  }
+}
+
+
+
 volatile extern char pps_int;
 volatile extern uint32 pps_ns;
 volatile extern char ints;
@@ -245,7 +265,8 @@ void pll_run() {
   pps_history[1] = pps_history[0];
   pps_history[0] = pps_ns_copy;
 
-  int32 pps_filtered = med_mean_filter(pps_history);
+//  int32 pps_filtered = med_mean_filter(pps_history);
+  int32 pps_filtered = median_filter(pps_history);
 //  debug("PPS filtered: "); debug_long(pps_filtered); debug("\n");
 
   short slew_rate = 0;
