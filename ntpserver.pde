@@ -1,3 +1,6 @@
+#include <avr/power.h>
+#include <avr/sleep.h>
+
 #include "hwdep.h"
 #include "timing.h"
 #include "gps.h"
@@ -8,6 +11,10 @@ volatile extern char pps_int;
 volatile extern char schedule_ints;
 
 void setup () {
+  power_adc_disable();
+  power_twi_disable();
+  power_usart2_disable();
+  power_usart3_disable();
   pinMode(13, OUTPUT);
   for (int k = 0 ; k < 3 ; k++) {
     digitalWrite(13, HIGH);
@@ -35,6 +42,7 @@ void loop () {
       ether_dhcp_poll();
       schedule_ints--;
     }
+    sleep_mode();
   }
 }
 
