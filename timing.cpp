@@ -350,7 +350,12 @@ void pll_run() {
   last_slew_rate = slew_rate;
   lasthardslew = hardslew;
 
-  debug("PLL: "); debug_int(clocks); debug("\n");
+  debug("PLL: "); debug_int(clocks);
+  debug(" ");
+  if (slew_rate >= 0) debug("+"); debug_int(slew_rate);
+  debug(" = ");
+  debug_int(clocks + slew_rate);
+  debug("\n");
   debug("Temp: "); debug_float(tempprobe_gettemp()); debug("\n");
 
   tickadj_set_clocks(clocks + slew_rate);
