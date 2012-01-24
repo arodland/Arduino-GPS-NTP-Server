@@ -11,10 +11,13 @@ int main() {
   timer_init();
   gps_init();
   tickadj_set_clocks(0);
+  int cycles = 0;
 
   for(;;) {
     sim_clk();
     if (pps_int) {
+      cycles ++;
+      printf("Cycle: %d\n", cycles);
       pll_run();
     }
     gps_poll();
