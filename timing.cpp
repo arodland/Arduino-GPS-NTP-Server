@@ -10,7 +10,8 @@ volatile /* static */ char ints = 0;
 volatile char schedule_ints = 0;
 static signed char tickadj_upper = 0;
 static unsigned char tickadj_lower = 0;
-static unsigned char tickadj_phase = 0;
+static unsigned char tickadj_accum = 0;
+static unsigned char tickadj_extra = 0;
 
 static unsigned int gps_week = 0;
 static uint32 tow_sec_utc = 0;
@@ -105,24 +106,17 @@ uint32 ns_to_ntp(uint32 ns) {
 }
 
 void tickadj_adjust() {
-  int x = (tickadj_phase / 16 < tickadj_lower % 16) ? 1 : 0;
-  int y = (tickadj_phase % 16 < (tickadj_lower / 16) + x);
-
-  /* these actually give periods of DEF_TIMER_VAL + tickadj_upper and
-   * DEF_TIMER_VAL + tickadj_upper + 1 because the timer adds one. This means
-   * the avg. period is (DEF_TIMER_VAL + tickadj_upper + tickadj_lower / 256)
-   * and the frequency is 2MHz / that.
-   */
-  if (y) {
-    timer_set_interval(DEF_TIMER_VAL + tickadj_upper + 1);
-  } else {
-    timer_set_interval(DEF_TIMER_VAL + tickadj_upper);
-  }
+  timer_set_interval(DEF_TIMER_VAL + tickadj_upper + tickadj_extra);
 }
 
 void tickadj_run() {
-  tickadj_phase++;
-//  debug("PLL phase "); debug_int(tickadj_phase); debug("\n");
+  unsigned char old_accum = tickadj_accum;
+  tickadj_accum += tickadj_lower;
+  if (tickadj_accum < old_accum) {
+    tickadj_extra = 1;
+  } else {
+    tickadj_extra = 0;
+  }
   tickadj_adjust();
 }
 
