@@ -257,9 +257,9 @@ static int32 pps_history[5];
 static short last_slew_rate = 0;
 static int32 ppschange_int;
 static char lasthardslew = 0;
+static int32 slew_accum = 0;
 
-static short clocks = -3439; /* 213.2 ppm */
-//static short clocks = 0;
+static short clocks = 0;
 
 #define PLL_SLEW_DIV 500L
 #define PLL_SLEW_THRESH 1000L
@@ -298,36 +298,40 @@ void pll_run() {
     ints++;
     hardslew = -1;
     ppschange_int = 0;
+    slew_accum = 0;
     clocks = 0;
 //    debug("Slew ------\n");
   } else if (pps_ns_copy > 32500000L && pps_filtered > 32500000L) {
     ints--;
     hardslew = 1;
     ppschange_int = 0;
+    slew_accum = 0;
     clocks = 0;
 //    debug("Slew ++++++\n");
-  } else if (pps_filtered >= PLL_SLEW_THRESH || pps_filtered <= -PLL_SLEW_THRESH) {
-    if (pps_filtered >= PLL_SLEW_MAX * PLL_SLEW_DIV) {
-      slew_rate = PLL_SLEW_MAX;
-    } else if (pps_filtered <= -PLL_SLEW_MAX * PLL_SLEW_DIV) {
-      slew_rate = -PLL_SLEW_MAX;
-    } else {
-      slew_rate = pps_filtered / PLL_SLEW_DIV + ((pps_filtered > 0) ? 2 : -2);
-      if (pps_filtered > 10000) {
-        slew_rate += 50;
-      } else if (pps_filtered < -100000) {
-        slew_rate -= 50;
-      }
-    }
-//    debug("Slew "); debug_int(slew_rate); debug("\n");
-  } else if (pps_filtered >= 400) {
-    slew_rate = 1;
-  } else if (pps_filtered <= -400) {
-    slew_rate = -1;
+  } else {
+    slew_accum += pps_filtered;
   }
 
-  if (slew_rate >= -6 && slew_rate <= 6) {
-    ppschange_int += pps_ns_copy / 50 + pps_filtered / 25;
+  if (slew_accum >= PLL_SLEW_DIV || slew_accum <= -PLL_SLEW_DIV) {
+    if (slew_accum >= PLL_SLEW_MAX * PLL_SLEW_DIV) {
+      slew_rate = PLL_SLEW_MAX;
+      slew_accum = 0;
+    } else if (slew_accum <= -PLL_SLEW_MAX * PLL_SLEW_DIV) {
+      slew_rate = -PLL_SLEW_MAX;
+      slew_accum = 0;
+    } else {
+      slew_rate = slew_accum / PLL_SLEW_DIV;
+      slew_accum -= slew_rate * PLL_SLEW_DIV;
+      if (slew_rate > 20) {
+        slew_rate += 40;
+      } else if (slew_rate < -20) {
+        slew_rate -= 40;
+      } else if (slew_rate > 0) {
+        slew_rate += 2;
+      } else if (slew_rate < 0) {
+        slew_rate -= 2;
+      }
+    }
   }
 
   if (!hardslew && lasthardslew) {
