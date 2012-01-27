@@ -6,6 +6,8 @@ volatile uint32 pps_ns;
 
 #ifdef SIMULATE
 
+#include <stdlib.h>
+
 struct _timer_struct timer;
 
 /* Set up for 1:1 divisor and 1 interrupt per 65536 */
@@ -29,9 +31,9 @@ extern void timer_int();
 void gps_init() {
   return; /* XXX unimplemented */
 }
-#define GPS_CYCLES (16000000L - 4000L)
+#define GPS_CYCLES (16000000L - 1000L)
 
-static uint32 gps_clk = (GPS_CYCLES - GPS_CYCLES / 40);
+static uint32 gps_clk = GPS_CYCLES / 64;
 
 void sim_clk() {
   timer.prediv_count ++;
@@ -46,6 +48,9 @@ void sim_clk() {
   gps_clk ++;
   if (gps_clk >= GPS_CYCLES) {
     gps_clk -= GPS_CYCLES;
+    if (rand() % 4 < 1) {
+      gps_clk += 10;
+    }
     pps_ns = time_get_ns();
     pps_int = 1;
   }
