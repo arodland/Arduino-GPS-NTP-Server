@@ -1,5 +1,6 @@
 #ifdef SIMULATE
 
+#include <stdio.h>
 #include <unistd.h>
 #include "hwdep.h"
 #include "timing.h"
@@ -8,6 +9,7 @@
 volatile extern char pps_int;
 
 int main() {
+  setvbuf(stdout, NULL, _IONBF, 0);
   timer_init();
   gps_init();
   tickadj_set_clocks(0);
