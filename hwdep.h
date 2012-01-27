@@ -142,6 +142,10 @@ const unsigned int PREDIV = 8;
 const uint32 NS_PER_COUNT = (1000000000UL / (CPU_CLOCK / PREDIV));
 const unsigned int INT_PER_SEC = ((CPU_CLOCK / PREDIV) / DEF_TIMER_VAL);
 
+inline uint32 NSPADJ(unsigned int tm) {
+  return ((tm / 2 + (NS_PER_COUNT * DEF_TIMER_VAL) / 256) / tm);
+}
+
 // adding tm/2 here biases by 1/2 so it rounds :)
 inline uint32 NSPC(unsigned int tm) {
   return ((tm / 2 + NS_PER_COUNT * DEF_TIMER_VAL) / tm);
@@ -154,6 +158,10 @@ inline uint32 NSPI(unsigned int tm) {
 const uint32 NS_PER_INT = (1000000000UL / ((CPU_CLOCK / PREDIV) / DEF_TIMER_VAL));
 
 const uint32 NTP_PER_COUNT = (0x100000000ULL / (CPU_CLOCK / PREDIV));
+
+inline uint32 NTPPADJ(unsigned int tm) {
+  return ((tm / 2 + (NTP_PER_COUNT * DEF_TIMER_VAL) / 256) / tm);
+}
 
 inline uint32 NTPPC(unsigned int tm) {
   return ((tm / 2 + NTP_PER_COUNT * DEF_TIMER_VAL) / tm);

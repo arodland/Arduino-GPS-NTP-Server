@@ -3,6 +3,8 @@
 
 #include <string.h>
 
+#define FRACTIONAL_COMP 1
+
 volatile /* static */ char ints = 0;
 /* For timing medium-resolution events like tempprobe reading and DHCP
  * renewal that shouldn't run with interrupts disabled
@@ -30,7 +32,11 @@ const uint32 PLL_OFFSET_NS = 15625000L;
 const uint32 PLL_OFFSET_NTP = 0x4000000UL;
 
 int32 make_ns(unsigned char i, unsigned short counter) {
-  int32 ns = i * NS_PER_INT + counter * NSPC(timer_get_interval());
+  unsigned short tm = timer_get_interval();
+  int32 ns = i * NS_PER_INT + counter * NSPC(tm);
+#ifdef FRACTIONAL_COMP
+  ns -= NSPADJ(tm) * tickadj_accum;
+#endif
   if (ns + PLL_OFFSET_NS > 1000000000L) {
     ns -= 1000000000L;
   }
@@ -39,7 +45,11 @@ int32 make_ns(unsigned char i, unsigned short counter) {
 }
 
 int32 make_ns_carry(unsigned char i, unsigned short counter, char *add_sec) {
-  int32 ns = i * NS_PER_INT + counter * NSPC(timer_get_interval());
+  unsigned short tm = timer_get_interval();
+  int32 ns = i * NS_PER_INT + counter * NSPC(tm);
+#ifdef FRACTIONAL_COMP
+  ns -= NSPADJ(tm) * tickadj_accum;
+#endif
   if (ns + PLL_OFFSET_NS > 1000000000L) {
     ns -= 1000000000L;
     *add_sec = 1;
@@ -50,13 +60,21 @@ int32 make_ns_carry(unsigned char i, unsigned short counter, char *add_sec) {
 }
 
 uint32 make_ntp(unsigned char i, unsigned short counter) {
-  uint32 ntp = i * NTP_PER_INT + counter * NTPPC(timer_get_interval());
+  unsigned short tm = timer_get_interval();
+  uint32 ntp = i * NTP_PER_INT + counter * NTPPC(tm);
+#ifdef FRACTIONAL_COMP
+  ntp -= NTPPADJ(tm) * tickadj_accum;
+#endif
   ntp += PLL_OFFSET_NTP;
   return ntp;
 }
 
 uint32 make_ntp_carry(unsigned char i, unsigned short counter, char *add_sec) {
-  uint32 ntp = i * NTP_PER_INT + counter * NTPPC(timer_get_interval());
+  unsigned short tm = timer_get_interval();
+  uint32 ntp = i * NTP_PER_INT + counter * NTPPC(tm);
+#ifdef FRACTIONAL_COMP
+  ntp -= NTPPADJ(tm) * tickadj_accum;
+#endif
   uint32 ntp_augmented = ntp + PLL_OFFSET_NTP;
   *add_sec = ntp_augmented < ntp;
   return ntp_augmented;
@@ -302,9 +320,9 @@ void pll_run() {
       }
     }
 //    debug("Slew "); debug_int(slew_rate); debug("\n");
-  } else if (pps_filtered > 0) {
+  } else if (pps_filtered >= 400) {
     slew_rate = 1;
-  } else if (pps_filtered < 0) {
+  } else if (pps_filtered <= -400) {
     slew_rate = -1;
   }
 
