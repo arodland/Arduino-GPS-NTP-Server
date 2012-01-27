@@ -261,10 +261,9 @@ static int32 slew_accum = 0;
 
 static short clocks = 0;
 
-#define PLL_SLEW_DIV 500L
-#define PLL_SLEW_THRESH 1000L
+#define PLL_SLEW_DIV 512L
 #define PLL_SLEW_MAX 8192L
-#define PLL_RATE_DIV 2048L
+#define PLL_RATE_DIV 1024L
 
 void pll_run() {
   pps_int = 0;
@@ -340,11 +339,12 @@ void pll_run() {
     /* 62.5 ns per clock */
     clocks = (ppschange * 2) / 125;
   } else if (!hardslew) {
-    /* The ideal factor for last_slew_rate here would be 62.5 (1000 / 16) but we
-     * undercorrect a little bit, leaving a residual that will help to keep us
-     * from settling in a state where slew != 0
+    /* The ideal factor for last_slew_rate here is 62.5 (1000 / 16), so the
+     * choices are 62 and 63. 63 gives slightly faster lock-on, but carries a
+     * risk that the PLL will get stuck in a state where slew != 0, so we
+     * use 62 here.
      */
-    int32 ppschange = pps_ns_copy - pps_history[1] + (int32)last_slew_rate * 61;
+    int32 ppschange = pps_ns_copy - pps_history[1] + (int32)last_slew_rate * 62;
     // debug("PPS change raw: "); debug_long(ppschange); debug("\n");
     ppschange_int += ppschange;
     // debug("PPS change integrated: "); debug_long(ppschange_int); debug("\n");
