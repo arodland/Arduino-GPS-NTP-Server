@@ -1,6 +1,8 @@
 #include "hwdep.h"
 #include "ethernet.h"
 
+volatile char ether_int = 0;
+
 #ifdef SIMULATE
 
 void ether_init() {
@@ -14,14 +16,39 @@ void ether_poll() {
 #include <Ethernet.h>
 #include <EthernetDHCP.h>
 #include <Udp.h>
+#include "w5100.h"
 
 unsigned char mac[] = { 0x9a, 0xa2, 0xda, 0x00, 0x32, 0xd4 };
 
 Server debugserver = Server(1000);
 Client debugclient = Client(MAX_SOCK_NUM);
 
+static uint32 recv_ts_upper, recv_ts_lower;
+
+void ether_interrupt() {
+  if (!ether_int) {
+    time_get_ntp(&recv_ts_upper, &recv_ts_lower);
+    ether_int = 1;
+  }
+}
+
+void clear_ether_interrupt() {
+  cli();
+  W5100.writeIR(0xF0);
+  W5100.writeSnIR(0, 0xff);
+  W5100.writeSnIR(1, 0xff);
+  W5100.writeSnIR(2, 0xff);
+  W5100.writeSnIR(3, 0xff);
+  ether_int = 0;
+  sei();
+}
+
 void ether_init() {
+  pinMode(2, INPUT);
+  attachInterrupt(0, ether_interrupt, FALLING);
+
   EthernetDHCP.begin(mac);
+  W5100.writeIMR(0x0F);
   Udp.begin(123);
   debugserver.begin();
 }
@@ -37,8 +64,6 @@ static const char ntp_packet_template[48] = {
   0, 0, 0, 0, 0, 0, 0, 0 /* Receive Timestamp */,
   0, 0, 0, 0, 0, 0, 0, 0 /* Transmit Timestamp */
 };
-
-static uint32 recv_ts_upper, recv_ts_lower;
 
 void do_ntp_request(unsigned char *buf, unsigned int len,
     unsigned char *ip, unsigned int port) {
@@ -86,8 +111,8 @@ void do_ntp_request(unsigned char *buf, unsigned int len,
     reply[45] = (tx_ts_lower >> 16) & 0xff;
     reply[46] = (tx_ts_lower >> 8) & 0xff;
     reply[47] = (tx_ts_lower) & 0xff;
-    debug("NTP\n");
     Udp.sendPacket(reply, 48, ip, port);
+    debug("NTP\n");
   } else {
     debug("NTP unknown packet type");
   }
@@ -100,7 +125,6 @@ void ether_poll() {
   unsigned int len;
 
   if (Udp.available()) {
-    time_get_ntp(&recv_ts_upper, &recv_ts_lower);
     len = Udp.readPacket(buf, 256, clientip, &port);
     do_ntp_request(buf, len, clientip, port);
   }
@@ -112,6 +136,7 @@ void ether_poll() {
   } else {
     debugclient = debugserver.available();
   }
+  clear_ether_interrupt();
 }
 
 static unsigned int dhcp_timer = 0;
