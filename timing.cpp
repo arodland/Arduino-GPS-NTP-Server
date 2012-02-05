@@ -321,16 +321,13 @@ void pll_run() {
     } else {
       slew_rate = slew_accum / PLL_SLEW_DIV;
       slew_accum -= slew_rate * PLL_SLEW_DIV;
-      if (slew_rate > 20) {
-        slew_rate += 40;
-      } else if (slew_rate < -20) {
-        slew_rate -= 40;
-      } else if (slew_rate > 0) {
-        slew_rate += 2;
-      } else if (slew_rate < 0) {
-        slew_rate -= 2;
-      }
     }
+  } else if (slew_accum >= PLL_SLEW_DIV / 2) {
+    slew_rate = 1;
+    slew_accum -= PLL_SLEW_DIV / 2;
+  } else if (slew_accum <= -PLL_SLEW_DIV / 2) {
+    slew_rate = -1;
+    slew_accum += PLL_SLEW_DIV / 2;
   }
 
   if (!hardslew && lasthardslew) {
