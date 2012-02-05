@@ -5,6 +5,7 @@
 #include "tempprobe.h"
 
 volatile extern char pps_int;
+volatile extern char ether_int;
 volatile extern char schedule_ints;
 
 void setup () {
@@ -15,6 +16,7 @@ void setup () {
     digitalWrite(13, LOW);
     delay(250);
   }
+
   Serial.begin(115200);
   timer_init();
   gps_init();
@@ -27,9 +29,10 @@ void loop () {
     if (pps_int) {
       pll_run();
     }
-    ether_poll();
+    if (ether_int) {
+      ether_poll();
+    }
     gps_poll();
-    ether_poll();
     while (schedule_ints) {
       tempprobe_run();
       ether_dhcp_poll();
