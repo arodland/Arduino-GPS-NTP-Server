@@ -295,6 +295,7 @@ void pll_run() {
 
   short slew_rate = 0;
   char hardslew = 0;
+  char fll_enable = 0;
 
   if ((pps_ns_copy < -31250000L && pps_filtered < -31250000L) || (pps_ns_copy > 31250000L && pps_filtered > 31250000L)) {
     ints -= pps_ns_copy / 31250000L;
@@ -316,6 +317,7 @@ void pll_run() {
       slew_accum += PLL_SLEW_MAX * PLL_SLEW_DIV;
       slew_accum /= 2;
     } else {
+      fll_enable = 1;
       slew_rate = slew_accum / PLL_SLEW_DIV;
       if (slew_rate > PLL_SLEW_SLOW_ZONE) {
         slew_rate -= PLL_SLEW_SLOW_ZONE / 2;
@@ -334,7 +336,7 @@ void pll_run() {
     /* 62.5 ns per clock */
     clocks = (ppschange * 2) / 125;
     if (startup) startup--;
-  } else if (!hardslew) {
+  } else if (fll_enable) {
     /* The ideal factor for last_slew_rate here is 62.5 (1000 / 16), so the
      * choices are 62 and 63. 63 gives slightly faster lock-on, but carries a
      * risk that the PLL will get stuck in a state where slew != 0, so we
