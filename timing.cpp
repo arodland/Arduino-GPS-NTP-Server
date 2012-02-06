@@ -263,6 +263,7 @@ static short clocks = 0;
 
 #define PLL_SLEW_DIV 512L
 #define PLL_SLEW_MAX 8192L
+#define PLL_SLEW_SLOW_ZONE 20
 #define PLL_RATE_DIV 1024L
 #define PLL_SKEW_MAX 32
 
@@ -313,22 +314,25 @@ void pll_run() {
   }
 
   if (slew_accum >= PLL_SLEW_DIV || slew_accum <= -PLL_SLEW_DIV) {
-    if (slew_accum >= PLL_SLEW_MAX * PLL_SLEW_DIV) {
+    if (slew_accum >= (PLL_SLEW_MAX + PLL_SLEW_SLOW_ZONE / 2) * PLL_SLEW_DIV) {
       slew_rate = PLL_SLEW_MAX;
-      slew_accum = 0;
-    } else if (slew_accum <= -PLL_SLEW_MAX * PLL_SLEW_DIV) {
+      slew_accum -= PLL_SLEW_MAX * PLL_SLEW_DIV;
+      slew_accum /= 2;
+    } else if (slew_accum <= -(PLL_SLEW_MAX + PLL_SLEW_SLOW_ZONE / 2) * PLL_SLEW_DIV) {
       slew_rate = -PLL_SLEW_MAX;
-      slew_accum = 0;
+      slew_accum += PLL_SLEW_MAX * PLL_SLEW_DIV;
+      slew_accum /= 2;
     } else {
       slew_rate = slew_accum / PLL_SLEW_DIV;
+      if (slew_rate > PLL_SLEW_SLOW_ZONE) {
+        slew_rate -= PLL_SLEW_SLOW_ZONE / 2;
+      } else if (slew_rate < -PLL_SLEW_SLOW_ZONE) {
+        slew_rate += PLL_SLEW_SLOW_ZONE / 2;
+      } else if (slew_rate <= -2 || slew_rate >= -2) {
+        slew_rate /= 2;
+      }
       slew_accum -= slew_rate * PLL_SLEW_DIV;
     }
-  } else if (slew_accum >= PLL_SLEW_DIV / 2) {
-    slew_rate = 1;
-    slew_accum -= PLL_SLEW_DIV / 2;
-  } else if (slew_accum <= -PLL_SLEW_DIV / 2) {
-    slew_rate = -1;
-    slew_accum += PLL_SLEW_DIV / 2;
   }
 
   if (!hardslew && lasthardslew) {
