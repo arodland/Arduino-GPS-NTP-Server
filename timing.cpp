@@ -264,6 +264,7 @@ static short clocks = 0;
 #define PLL_SLEW_DIV 512L
 #define PLL_SLEW_MAX 8192L
 #define PLL_RATE_DIV 1024L
+#define PLL_SKEW_MAX 32
 
 void pll_run() {
   pps_int = 0;
@@ -346,20 +347,22 @@ void pll_run() {
     ppschange_int += ppschange;
     // debug("PPS change integrated: "); debug_long(ppschange_int); debug("\n");
     if (ppschange_int < -PLL_RATE_DIV) {
-      if (ppschange_int < -16 * PLL_RATE_DIV) {
+      if (ppschange_int < -PLL_SKEW_MAX * PLL_RATE_DIV) {
         // debug("Speed ++\n");
-        clocks -= 16;
-        ppschange_int = 0;
+        clocks -= PLL_SKEW_MAX;
+        ppschange_int += PLL_RATE_DIV * PLL_SKEW_MAX;
+        ppschange_int /= 2;
       } else {
         // debug("Speed +\n");
         clocks += ppschange_int / PLL_RATE_DIV;
         ppschange_int -= PLL_RATE_DIV * (ppschange_int / PLL_RATE_DIV);
       }
     } else if (ppschange_int > PLL_RATE_DIV) {
-      if (ppschange_int > 16 * PLL_RATE_DIV) {
+      if (ppschange_int > PLL_SKEW_MAX * PLL_RATE_DIV) {
         // debug("Speed --\n");
-        clocks += 16;
-        ppschange_int = 0;
+        clocks += PLL_SKEW_MAX;
+        ppschange_int -= PLL_RATE_DIV * PLL_SKEW_MAX;
+        ppschange_int /= 2;
       } else {
         // debug("Speed -\n");
         clocks += ppschange_int / PLL_RATE_DIV;
