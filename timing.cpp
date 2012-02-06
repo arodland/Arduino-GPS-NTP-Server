@@ -258,6 +258,7 @@ static short last_slew_rate = 0;
 static int32 ppschange_int;
 static char lasthardslew = 0;
 static int32 slew_accum = 0;
+static char startup = 2;
 
 static short clocks = 0;
 
@@ -335,11 +336,12 @@ void pll_run() {
     }
   }
 
-  if (!hardslew && lasthardslew) {
+  if (!hardslew && (lasthardslew || startup)) {
     int32 ppschange = pps_ns_copy - pps_history[1] + 
       (int32)lasthardslew * 31250000L;
     /* 62.5 ns per clock */
     clocks = (ppschange * 2) / 125;
+    if (startup) startup--;
   } else if (!hardslew) {
     /* The ideal factor for last_slew_rate here is 62.5 (1000 / 16), so the
      * choices are 62 and 63. 63 gives slightly faster lock-on, but carries a
