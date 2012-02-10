@@ -296,20 +296,12 @@ void pll_run() {
   short slew_rate = 0;
   char hardslew = 0;
 
-  if (pps_ns_copy < -32500000L && pps_filtered < -32500000L) {
-    ints++;
-    hardslew = -1;
+  if ((pps_ns_copy < -31250000L && pps_filtered < -31250000L) || (pps_ns_copy > 31250000L && pps_filtered > 31250000L)) {
+    ints -= pps_ns_copy / 31250000L;
+    hardslew = pps_ns_copy / 31250000L;
     ppschange_int = 0;
     slew_accum = 0;
     clocks = 0;
-//    debug("Slew ------\n");
-  } else if (pps_ns_copy > 32500000L && pps_filtered > 32500000L) {
-    ints--;
-    hardslew = 1;
-    ppschange_int = 0;
-    slew_accum = 0;
-    clocks = 0;
-//    debug("Slew ++++++\n");
   } else {
     slew_accum += pps_filtered;
   }
