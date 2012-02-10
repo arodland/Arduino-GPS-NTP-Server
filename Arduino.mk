@@ -292,7 +292,7 @@ CPPFLAGS      = -mmcu=$(MCU) -DF_CPU=$(F_CPU) -DARDUINO=20 \
 CFLAGS        = -std=gnu99
 CXXFLAGS      = -fno-exceptions
 ASFLAGS       = -mmcu=$(MCU) -I. -x assembler-with-cpp
-LDFLAGS       = -mmcu=$(MCU) -lm -Wl,--gc-sections -Os
+LDFLAGS       = -mmcu=$(MCU) -lm -Wl,--gc-sections -Wl,--relax -Os
 
 # Rules for making a CPP file from the main sketch (.cpe)
 PDEHEADER     = \\\#include \"WProgram.h\"
