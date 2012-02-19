@@ -31,6 +31,10 @@ inline unsigned short timer_get_counter () {
   return timer.counter;
 }
 
+inline void timer_set_counter (unsigned short counter) {
+  timer.counter = counter;
+}
+
 inline unsigned short timer_get_capture () {
   return timer.capture;
 }
@@ -92,6 +96,10 @@ typedef unsigned long int uint32;
 
 inline unsigned short timer_get_counter () {
   return TCNT4;
+}
+
+inline void timer_set_counter (unsigned short counter) {
+  TCNT4 = counter;
 }
 
 inline unsigned short timer_get_capture () {

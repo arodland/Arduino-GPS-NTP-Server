@@ -14,6 +14,7 @@ static signed char tickadj_upper = 0;
 static unsigned char tickadj_lower = 0;
 static unsigned char tickadj_accum = 0;
 static unsigned char tickadj_extra = 0;
+unsigned char pps_seen = 0;
 
 static unsigned int gps_week = 0;
 static uint32 tow_sec_utc = 0;
@@ -277,6 +278,10 @@ void pll_run() {
 
   if (pps_ns_copy > 500000000L) {
     pps_ns_copy -= 1000000000L;
+  }
+
+  if (pps_seen < 2) {
+    pps_seen ++;
   }
 
   debug("PPS: "); debug_long(pps_ns_copy);

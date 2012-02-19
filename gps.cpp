@@ -1,6 +1,8 @@
 #include "hwdep.h"
 #include "gps.h"
 
+volatile extern char ints;
+
 inline char to_hex(unsigned char val) {
   if (val > 10) {
     return 'A' + (val - 10);
@@ -247,6 +249,10 @@ void gps_dgps_message() {
 #endif
 }
 
+
+extern unsigned char pps_seen;
+static unsigned char date_recv;
+
 void gps_geodetic_message() {
   unsigned int year = gps_payload[11] << 8 | gps_payload[12];
   unsigned int month = gps_payload[13];
@@ -277,6 +283,13 @@ void gps_geodetic_message() {
   int utc_offset = gps_utc_offset(hour, minute, second, gps_tow_sec);
 
   time_set_date(gps_week, gps_tow_sec, utc_offset);
+
+  if (pps_seen < 2 || !date_recv) {
+    ints = millis / 125;
+    tickadj_set_clocks(0);
+    timer_set_counter( (millis % 125) * (DEF_TIMER_VAL / 125) );
+    date_recv = 1;
+  }
 }
 
 void gps_ack_message() {
