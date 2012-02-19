@@ -29,7 +29,8 @@ void time_set_date(unsigned int week, uint32 gps_tow, int offset) {
 }
 
 const uint32 PLL_OFFSET_NS = 15625000L;
-const uint32 PLL_OFFSET_NTP = 0x4000000UL;
+const uint32 NTP_FUDGE_US = 3500;
+const uint32 PLL_OFFSET_NTP = 0x4000000UL + (NTP_FUDGE_US * 429497) / 100;
 
 int32 make_ns(unsigned char i, unsigned short counter) {
   unsigned short tm = timer_get_interval();
@@ -156,20 +157,17 @@ void second_int() {
   }
 }
 
-static int ledstate = 0;
-
 void timer_int() {
   ints++;
   if (ints == INT_PER_SEC) {
     ints = 0;
     second_int();
   }
+#ifndef SIMULATE
+  digitalWrite(13, (ints == 0) ? 1 : 0);
+#endif
   tickadj_run();
 
-#ifndef SIMULATE
-  ledstate++;
-  digitalWrite(13, (ledstate & 4) ? 1 : 0);
-#endif
   schedule_ints++;
 }
 
@@ -253,7 +251,7 @@ volatile extern uint32 pps_ns;
 volatile extern char ints;
 
 static int32 pps_ns_copy = 0;
-static int32 pps_history[5];
+static int32 pps_history[5] = { 0L, 0L, 0L, 0L, 0L };
 static short last_slew_rate = 0;
 static int32 ppschange_int;
 static char lasthardslew = 0;
@@ -262,10 +260,10 @@ static char startup = 2;
 
 static short clocks = 0;
 
-#define PLL_SLEW_DIV 512L
+#define PLL_SLEW_DIV 1024L
 #define PLL_SLEW_MAX 8192L
-#define PLL_SLEW_SLOW_ZONE 20
-#define PLL_RATE_DIV 1024L
+#define PLL_SLEW_SLOW_ZONE 10
+#define PLL_RATE_DIV 2048L
 #define PLL_SKEW_MAX 32
 
 void pll_run() {
@@ -281,7 +279,7 @@ void pll_run() {
     pps_ns_copy -= 1000000000L;
   }
 
-  debug("PPS: "); debug_long(pps_ns_copy); debug("\n");
+  debug("PPS: "); debug_long(pps_ns_copy);
 
   pps_history[4] = pps_history[3];
   pps_history[3] = pps_history[2];
@@ -289,9 +287,10 @@ void pll_run() {
   pps_history[1] = pps_history[0];
   pps_history[0] = pps_ns_copy;
 
-//  int32 pps_filtered = med_mean_filter(pps_history);
-  int32 pps_filtered = median_filter(pps_history);
-//  debug("PPS filtered: "); debug_long(pps_filtered); debug("\n");
+  int32 pps_filtered = med_mean_filter(pps_history);
+//  int32 pps_filtered = median_filter(pps_history);
+  debug(" ("); debug_long(pps_filtered); debug(")");
+  debug("\n");
 
   short slew_rate = 0;
   char hardslew = 0;
