@@ -157,20 +157,17 @@ void second_int() {
   }
 }
 
-static int ledstate = 0;
-
 void timer_int() {
   ints++;
   if (ints == INT_PER_SEC) {
     ints = 0;
     second_int();
   }
+#ifndef SIMULATE
+  digitalWrite(13, (ints == 0) ? 1 : 0);
+#endif
   tickadj_run();
 
-#ifndef SIMULATE
-  ledstate++;
-  digitalWrite(13, (ledstate & 4) ? 1 : 0);
-#endif
   schedule_ints++;
 }
 
