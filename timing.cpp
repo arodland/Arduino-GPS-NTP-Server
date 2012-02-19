@@ -253,7 +253,7 @@ volatile extern uint32 pps_ns;
 volatile extern char ints;
 
 static int32 pps_ns_copy = 0;
-static int32 pps_history[5];
+static int32 pps_history[5] = { 0L, 0L, 0L, 0L, 0L };
 static short last_slew_rate = 0;
 static int32 ppschange_int;
 static char lasthardslew = 0;
