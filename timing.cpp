@@ -262,10 +262,10 @@ static char startup = 2;
 
 static short clocks = 0;
 
-#define PLL_SLEW_DIV 512L
+#define PLL_SLEW_DIV 1024L
 #define PLL_SLEW_MAX 8192L
-#define PLL_SLEW_SLOW_ZONE 20
-#define PLL_RATE_DIV 1024L
+#define PLL_SLEW_SLOW_ZONE 10
+#define PLL_RATE_DIV 2048L
 #define PLL_SKEW_MAX 32
 
 void pll_run() {
@@ -281,7 +281,7 @@ void pll_run() {
     pps_ns_copy -= 1000000000L;
   }
 
-  debug("PPS: "); debug_long(pps_ns_copy); debug("\n");
+  debug("PPS: "); debug_long(pps_ns_copy);
 
   pps_history[4] = pps_history[3];
   pps_history[3] = pps_history[2];
@@ -289,9 +289,10 @@ void pll_run() {
   pps_history[1] = pps_history[0];
   pps_history[0] = pps_ns_copy;
 
-//  int32 pps_filtered = med_mean_filter(pps_history);
-  int32 pps_filtered = median_filter(pps_history);
-//  debug("PPS filtered: "); debug_long(pps_filtered); debug("\n");
+  int32 pps_filtered = med_mean_filter(pps_history);
+//  int32 pps_filtered = median_filter(pps_history);
+  debug(" ("); debug_long(pps_filtered); debug(")");
+  debug("\n");
 
   short slew_rate = 0;
   char hardslew = 0;
