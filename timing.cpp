@@ -252,6 +252,8 @@ volatile extern char ints;
 
 static int32 pps_ns_copy = 0;
 static int32 pps_history[5] = { 0L, 0L, 0L, 0L, 0L };
+static int32 ppschange_history[8] = { 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L };
+static int32 last_pps_filtered = 0;
 static short last_slew_rate = 0;
 static int32 ppschange_int;
 static char lasthardslew = 0;
@@ -339,10 +341,19 @@ void pll_run() {
      * risk that the PLL will get stuck in a state where slew != 0, so we
      * use 62 here.
      */
-    int32 ppschange = pps_ns_copy - pps_history[1] + (int32)last_slew_rate * 62;
-    // debug("PPS change raw: "); debug_long(ppschange); debug("\n");
-    ppschange_int += ppschange;
-    // debug("PPS change integrated: "); debug_long(ppschange_int); debug("\n");
+    int32 ppschange = pps_filtered - last_pps_filtered + (int32)last_slew_rate * 62;
+    int32 ppschange_avg = 0;
+    for (char i = 7 ; i ; i--) {
+      ppschange_history[i] = ppschange_history[i-1];
+      ppschange_avg += (ppschange_history[i] + 4) / 8;
+    }
+    ppschange_history[0] = ppschange;
+    ppschange_avg += (ppschange + 4) / 8;
+
+    debug("PPS change raw: "); debug_long(ppschange); debug("\n");
+    debug("PPS change avg: "); debug_long(ppschange_avg); debug("\n");
+    ppschange_int += (ppschange_avg + 1)/ 2 + (ppschange + 1)/ 2;
+    debug("PPS change int: "); debug_long(ppschange_int); debug("\n");
     if (ppschange_int < -PLL_RATE_DIV) {
       if (ppschange_int < -PLL_SKEW_MAX * PLL_RATE_DIV) {
         // debug("Speed ++\n");
@@ -370,6 +381,7 @@ void pll_run() {
     }
   }
 
+  last_pps_filtered = pps_filtered;
   last_slew_rate = slew_rate;
   lasthardslew = hardslew;
 
