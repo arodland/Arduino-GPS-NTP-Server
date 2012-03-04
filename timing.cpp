@@ -29,7 +29,7 @@ void time_set_date(unsigned int week, uint32 gps_tow, int offset) {
 }
 
 const uint32 PLL_OFFSET_NS = 15625000L;
-const uint32 NTP_FUDGE_US = 3500;
+const uint32 NTP_FUDGE_US = 2500;
 const uint32 PLL_OFFSET_NTP = 0x4000000UL + (NTP_FUDGE_US * 429497) / 100;
 
 int32 make_ns(unsigned char i, unsigned short counter) {
@@ -249,6 +249,7 @@ inline int32 median_filter(int32 history[5]) {
 volatile extern char pps_int;
 volatile extern uint32 pps_ns;
 volatile extern char ints;
+extern int tempprobe_corr;
 
 static int32 pps_ns_copy = 0;
 static int32 pps_history[5] = { 0L, 0L, 0L, 0L, 0L };
@@ -376,10 +377,12 @@ void pll_run() {
   debug("PLL: "); debug_int(clocks);
   debug(" ");
   if (slew_rate >= 0) debug("+"); debug_int(slew_rate);
+  debug(" ");
+  if (tempprobe_corr >= 0) debug("+"); debug_int(tempprobe_corr);
   debug(" = ");
-  debug_int(clocks + slew_rate);
+  debug_int(clocks + slew_rate + tempprobe_corr);
   debug("\n");
   debug("Temp: "); debug_float(tempprobe_gettemp()); debug("\n");
 
-  tickadj_set_clocks(clocks + slew_rate);
+  tickadj_set_clocks(clocks + slew_rate + tempprobe_corr);
 }

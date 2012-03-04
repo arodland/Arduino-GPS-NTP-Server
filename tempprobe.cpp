@@ -1,3 +1,4 @@
+int tempprobe_corr = 0;
 #ifdef SIMULATE
 
 void tempprobe_init() { }
@@ -45,6 +46,7 @@ void tempprobe_run() {
     count++;
   } else if (count == 26) {
     tempprobe_temp = tempprobe.getTempC(probe_addr);
+    tempprobe_corr = (int)(16.0 * (0.00295255 * tempprobe_temp * tempprobe_temp - 0.226303 * tempprobe_temp + 33.2286) + 0.5);
     temp_valid = 1;
     count++;
   } else if (count == 96) {
