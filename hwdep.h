@@ -72,14 +72,15 @@ inline void delay(int millis) {
 #include <Ethernet.h>
 extern Server debugserver;
 extern Client debugclient;
-#define debugsocket_printif(x) do {\
+#define debugsocket_printif(...) do {\
   if (debugclient.connected())\
-    debugserver.print(x);\
+    debugserver.print(__VA_ARGS__);\
+    Serial.print(__VA_ARGS__);\
 } while (0)
 #define debug(x) debugsocket_printif(x)
 #define debug_int(x) debugsocket_printif(x)
 #define debug_long(x) debugsocket_printif(x)
-#define debug_float(x) debugsocket_printif(x)
+#define debug_float(x) debugsocket_printif(x, 2)
 #else
 #define debug(x) Serial.print(x)
 #define debug_int(x) Serial.print(x)

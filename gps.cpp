@@ -55,6 +55,10 @@ void gps_enable_dgps() {
   gps_write_sirf("\xaa\x8a\x00\x00\x00\x00", 6);
   /* Cmd: 166, Mode: Enable one, Message ID: 8, Rate: 1Hz, 4 bytes unused */
   gps_write_sirf("\xa0\x00\x08\x01\x00\x00\x00\x00", 8);
+  /* Cmd: 166, Mode: Enable one, Message ID: 7, Rate: 10sec, 4 bytes unused */
+  gps_write_sirf("\xa0\x00\x07\x0A\x00\x00\x00\x00", 8);
+  /* Cmd: 166, Mode: Enable one, Message ID: 4, Rate: 1Hz, 4 bytes unused */
+  gps_write_sirf("\xa0\x00\x04\x01\x00\x00\x00\x00", 8);
 
 }
 
@@ -217,9 +221,57 @@ void gps_navdata_message() {
 }
 
 void gps_tracking_data_message() {
+#if 0
+  unsigned char chans = gps_payload[7];
+  unsigned char ch;
+  unsigned char first = 1;
+
+  debug("SVs in view: ");
+
+  for (ch = 0 ; ch < chans ; ch++) {
+    unsigned char svid = gps_payload[8 + ch * 15];
+    if (svid != 0) {
+      unsigned char raw_az = gps_payload[9 + ch * 15];
+      unsigned char raw_el = gps_payload[10 + ch * 15];
+      unsigned int state = (unsigned int) gps_payload[11 + ch * 15] << 8
+                        | (unsigned int) gps_payload[12 + ch * 15];
+      float az = raw_az * 3.0 / 2.0;
+      float el = raw_el / 2.0;
+      float snr_avg = 0;
+      unsigned char meas;
+      for (meas = 0 ; meas < 2 ; meas++) {
+        snr_avg += gps_payload[15 + ch * 15 + meas];
+      }
+      snr_avg /= 2.0;
+
+      if (first)
+        first = 0;
+      else
+        debug(" ");
+      debug_int((unsigned int)svid);
+      debug(" ["); debug_float(az);
+      debug(" "); debug_float(el);
+      debug(" "); debug_float(snr_avg);
+      debug("]");
+    }
+  }
+  debug("\n");
+#endif
 }
 
 void gps_clockstatus_message() {
+#if 0
+  uint32 clock_bias = (uint32)gps_payload[12] << 24
+                 | (uint32)gps_payload[13] << 16
+                 | (uint32)gps_payload[14] << 8
+                 | (uint32)gps_payload[15];
+  uint32 gps_ms = (uint32)gps_payload[16] << 24
+                 | (uint32)gps_payload[17] << 16
+                 | (uint32)gps_payload[18] << 8
+                 | (uint32)gps_payload[19];
+  debug("Clock bias: "); debug_long(clock_bias); debug("\n");
+  debug("GPS Time ms: "); debug_long(gps_ms); debug("\n");
+#endif
 }
 
 void gps_satvisible_message() {
