@@ -124,19 +124,21 @@ void ether_poll() {
   unsigned int port;
   unsigned int len;
 
-  if (Udp.available()) {
-    len = Udp.readPacket(buf, 256, clientip, &port);
-    do_ntp_request(buf, len, clientip, port);
-  }
-  if (debugclient.connected()) {
-    if (debugclient.available()) {
-      debugclient.read();
-      debugserver.print("Hi!\n");
+  do {
+    while (Udp.available()) {
+      len = Udp.readPacket(buf, 256, clientip, &port);
+      do_ntp_request(buf, len, clientip, port);
     }
-  } else {
-    debugclient = debugserver.available();
-  }
-  clear_ether_interrupt();
+    if (debugclient.connected()) {
+      while (debugclient.available()) {
+        debugclient.read();
+        debugserver.print("Hi!\n");
+      }
+    } else {
+      debugclient = debugserver.available();
+    }
+    clear_ether_interrupt();
+  } while (ether_int);
 }
 
 static unsigned int dhcp_timer = 0;
