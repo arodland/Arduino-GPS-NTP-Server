@@ -29,7 +29,7 @@ void time_set_date(unsigned int week, uint32 gps_tow, int offset) {
 }
 
 const uint32 PLL_OFFSET_NS = 15625000L;
-const uint32 NTP_FUDGE_US = 4335;
+const uint32 NTP_FUDGE_US = 665;
 const uint32 PLL_OFFSET_NTP = 0x4000000UL + (NTP_FUDGE_US * 429497) / 100;
 
 int32 make_ns(unsigned char i, unsigned short counter) {
