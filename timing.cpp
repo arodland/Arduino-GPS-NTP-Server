@@ -3,7 +3,8 @@
 
 #include <string.h>
 
-#define SAWTOOTH_COMP 1
+//#define SAWTOOTH_COMP 1
+#undef SAWTOOTH_COMP
 
 volatile /* static */ char ints = 0;
 /* For timing medium-resolution events like tempprobe reading and DHCP
