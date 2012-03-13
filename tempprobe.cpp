@@ -1,11 +1,14 @@
+#include "config.h"
 int tempprobe_corr = 0;
-#ifdef SIMULATE
+#ifdef TEMPCORR
+
+#  ifdef SIMULATE
 
 void tempprobe_init() { }
 void tempprobe_int() { }
 float tempprobe_gettemp() { return 0.0f; }
 
-#else
+#  else
 
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -60,4 +63,5 @@ float tempprobe_gettemp() {
   return tempprobe_temp;
 }
 
+#  endif
 #endif

@@ -1,3 +1,4 @@
+#include "config.h"
 #include "hwdep.h"
 #include "timing.h"
 #include "gps.h"
@@ -21,7 +22,9 @@ void setup () {
   timer_init();
   gps_init();
   ether_init();
+#ifdef TEMPCORR
   tempprobe_init();
+#endif
 }
 
 void loop () {
@@ -34,7 +37,9 @@ void loop () {
     }
     gps_poll();
     while (schedule_ints) {
+#ifdef TEMPCORR
       tempprobe_run();
+#endif
       ether_dhcp_poll();
       schedule_ints--;
     }

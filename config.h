@@ -1,0 +1,2 @@
+#undef TEMPCORR
+#undef SAWTOOTH_COMP

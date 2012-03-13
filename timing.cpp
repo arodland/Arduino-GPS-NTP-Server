@@ -1,10 +1,8 @@
+#include "config.h"
 #include "hwdep.h"
 #include "tempprobe.h"
 
 #include <string.h>
-
-//#define SAWTOOTH_COMP 1
-#undef SAWTOOTH_COMP
 
 volatile /* static */ char ints = 0;
 /* For timing medium-resolution events like tempprobe reading and DHCP
@@ -394,12 +392,16 @@ void pll_run() {
   debug("PLL: "); debug_int(clocks);
   debug(" ");
   if (slew_rate >= 0) debug("+"); debug_int(slew_rate);
+#ifdef TEMPCORR
   debug(" ");
   if (tempprobe_corr >= 0) debug("+"); debug_int(tempprobe_corr);
+#endif
   debug(" = ");
   debug_int(clocks + slew_rate + tempprobe_corr);
   debug("\n");
+#ifdef TEMPCORR
   debug("Temp: "); debug_float(tempprobe_gettemp()); debug("\n");
+#endif
 
   tickadj_set_clocks(clocks + slew_rate + tempprobe_corr);
 }
