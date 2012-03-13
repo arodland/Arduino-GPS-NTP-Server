@@ -31,7 +31,7 @@ extern void timer_int();
 void gps_init() {
   return; /* XXX unimplemented */
 }
-#define GPS_CYCLES (16000000L - 1000L)
+#define GPS_CYCLES (16000000L - 1L)
 
 static uint32 gps_clk = GPS_CYCLES / 64;
 
@@ -48,9 +48,6 @@ void sim_clk() {
   gps_clk ++;
   if (gps_clk >= GPS_CYCLES) {
     gps_clk -= GPS_CYCLES;
-    if (rand() % 4 < 1) {
-      gps_clk += 10;
-    }
     pps_ns = time_get_ns();
     pps_int = 1;
   }

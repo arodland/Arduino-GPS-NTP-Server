@@ -16,6 +16,7 @@ int main() {
   gps_init();
   tickadj_set_clocks(0);
   int cycles = 0;
+  int i = 0;
 
   for(;;) {
     sim_clk();
@@ -23,8 +24,12 @@ int main() {
       cycles ++;
       printf("Cycle: %d\n", cycles);
       pll_run();
+      i = 0;
     }
     gps_poll();
+    if (i++ == 3) {
+      printf("NTP: %ld\n", time_get_ntp_lower(0));
+    }
   }
 }
 
