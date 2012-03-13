@@ -24,10 +24,11 @@ Server debugserver = Server(1000);
 Client debugclient = Client(MAX_SOCK_NUM);
 
 static uint32 recv_ts_upper, recv_ts_lower;
+extern const int32 NTP_FUDGE_RX, NTP_FUDGE_TX;
 
 void ether_interrupt() {
   if (!ether_int) {
-    time_get_ntp(&recv_ts_upper, &recv_ts_lower);
+    time_get_ntp(&recv_ts_upper, &recv_ts_lower, NTP_FUDGE_RX);
     ether_int = 1;
   }
 }
@@ -101,7 +102,7 @@ void do_ntp_request(unsigned char *buf, unsigned int len,
      */
     memcpy(reply + 16, reply + 32, 4);
 
-    time_get_ntp(&tx_ts_upper, &tx_ts_lower);
+    time_get_ntp(&tx_ts_upper, &tx_ts_lower, NTP_FUDGE_TX);
     /* Copy tx timestamp into packet */
     reply[40] = (tx_ts_upper >> 24) & 0xff;
     reply[41] = (tx_ts_upper >> 16) & 0xff;

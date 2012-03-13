@@ -28,9 +28,13 @@ void time_set_date(unsigned int week, uint32 gps_tow, int offset) {
   }
 }
 
-const uint32 PLL_OFFSET_NS = 15625000L;
-const uint32 NTP_FUDGE_US = 665;
-const uint32 PLL_OFFSET_NTP = 0x4000000UL + (NTP_FUDGE_US * 429497) / 100;
+#define PLL_FUDGE_NS -15000
+const uint32 PLL_OFFSET_NS = 15625000L - PLL_FUDGE_NS;
+#define PLL_OFFSET_NTP 0x4000000
+#define NTP_FUDGE_RX_US (-50)
+#define NTP_FUDGE_TX_US 950 
+extern const int32 NTP_FUDGE_RX = PLL_OFFSET_NTP + (NTP_FUDGE_RX_US * 429497) / 100;
+extern const int32 NTP_FUDGE_TX = PLL_OFFSET_NTP + (NTP_FUDGE_TX_US * 429497) / 100;
 
 int32 make_ns(unsigned char i, unsigned short counter) {
   unsigned short tm = timer_get_interval();
@@ -60,23 +64,23 @@ int32 make_ns_carry(unsigned char i, unsigned short counter, char *add_sec) {
   return ns;
 }
 
-uint32 make_ntp(unsigned char i, unsigned short counter) {
+uint32 make_ntp(unsigned char i, unsigned short counter, int32 fudge) {
   unsigned short tm = timer_get_interval();
   uint32 ntp = i * NTP_PER_INT + counter * NTPPC(tm);
 #ifdef FRACTIONAL_COMP
   ntp -= NTPPADJ(tm) * tickadj_accum;
 #endif
-  ntp += PLL_OFFSET_NTP;
+  ntp += fudge;
   return ntp;
 }
 
-uint32 make_ntp_carry(unsigned char i, unsigned short counter, char *add_sec) {
+uint32 make_ntp_carry(unsigned char i, unsigned short counter, int32 fudge, char *add_sec) {
   unsigned short tm = timer_get_interval();
   uint32 ntp = i * NTP_PER_INT + counter * NTPPC(tm);
 #ifdef FRACTIONAL_COMP
   ntp -= NTPPADJ(tm) * tickadj_accum;
 #endif
-  uint32 ntp_augmented = ntp + PLL_OFFSET_NTP;
+  uint32 ntp_augmented = ntp + fudge;
   *add_sec = ntp_augmented < ntp;
   return ntp_augmented;
 }
@@ -87,13 +91,13 @@ int32 time_get_ns() {
   return make_ns(i, ctr);
 }
 
-uint32 time_get_ntp_lower() {
+uint32 time_get_ntp_lower(int32 fudge) {
   char i = ints + timer_get_pending();
   unsigned short ctr = timer_get_counter();
-  return make_ntp(i, ctr);
+  return make_ntp(i, ctr, fudge);
 }
 
-void time_get_ntp(uint32 *upper, uint32 *lower) {
+void time_get_ntp(uint32 *upper, uint32 *lower, int32 fudge) {
   char add_sec;
   *upper = 2524953600UL; /* GPS epoch - NTP epoch */
   *upper += gps_week * 604800UL; /* 1 week */
@@ -101,7 +105,7 @@ void time_get_ntp(uint32 *upper, uint32 *lower) {
 
   char i = ints + timer_get_pending();
   unsigned short ctr = timer_get_counter();
-  *lower = make_ntp_carry(i, ctr, &add_sec);
+  *lower = make_ntp_carry(i, ctr, fudge, &add_sec);
   *upper += add_sec;
 }
 
