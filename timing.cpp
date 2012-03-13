@@ -256,7 +256,7 @@ extern int tempprobe_corr;
 
 static int32 pps_ns_copy = 0;
 static int32 pps_history[5] = { 0L, 0L, 0L, 0L, 0L };
-static int32 ppschange_history[8] = { 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L };
+static int32 ppschange_history[4] = { 0L, 0L, 0L, 0L };
 static int32 last_pps_filtered = 0;
 static short last_slew_rate = 0;
 static int32 ppschange_int;
@@ -347,14 +347,14 @@ void pll_run() {
      */
     int32 ppschange = pps_filtered - last_pps_filtered + (int32)last_slew_rate * 62;
     int32 ppschange_avg = 0;
-    for (char i = 7 ; i ; i--) {
+    for (char i = 3 ; i ; i--) {
       ppschange_history[i] = ppschange_history[i-1];
-      ppschange_avg += (ppschange_history[i] + 4) / 8;
+      ppschange_avg += ppschange_history[i] / 4;
     }
     ppschange_history[0] = ppschange;
-    ppschange_avg += (ppschange + 4) / 8;
+    ppschange_avg += ppschange / 4;
 
-    ppschange_int += (ppschange_avg + 1)/ 2 + (ppschange + 1)/ 2;
+    ppschange_int += ppschange_avg / 2 + ppschange / 2;
     debug("Int: "); debug_long(ppschange_int); debug("\n");
     if (ppschange_int < -PLL_RATE_DIV) {
       if (ppschange_int < -PLL_SKEW_MAX * PLL_RATE_DIV) {
