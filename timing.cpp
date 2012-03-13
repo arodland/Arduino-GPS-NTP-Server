@@ -3,7 +3,7 @@
 
 #include <string.h>
 
-#define FRACTIONAL_COMP 1
+#define SAWTOOTH_COMP 1
 
 volatile /* static */ char ints = 0;
 /* For timing medium-resolution events like tempprobe reading and DHCP
@@ -39,7 +39,7 @@ extern const int32 NTP_FUDGE_TX = PLL_OFFSET_NTP + (NTP_FUDGE_TX_US * 429497) / 
 int32 make_ns(unsigned char i, unsigned short counter) {
   unsigned short tm = timer_get_interval();
   int32 ns = i * NS_PER_INT + counter * NSPC(tm);
-#ifdef FRACTIONAL_COMP
+#ifdef SAWTOOTH_COMP
   ns -= NSPADJ(tm) * tickadj_accum;
 #endif
   if (ns + PLL_OFFSET_NS > 1000000000L) {
@@ -52,7 +52,7 @@ int32 make_ns(unsigned char i, unsigned short counter) {
 int32 make_ns_carry(unsigned char i, unsigned short counter, char *add_sec) {
   unsigned short tm = timer_get_interval();
   int32 ns = i * NS_PER_INT + counter * NSPC(tm);
-#ifdef FRACTIONAL_COMP
+#ifdef SAWTOOTH_COMP
   ns -= NSPADJ(tm) * tickadj_accum;
 #endif
   if (ns + PLL_OFFSET_NS > 1000000000L) {
@@ -67,7 +67,7 @@ int32 make_ns_carry(unsigned char i, unsigned short counter, char *add_sec) {
 uint32 make_ntp(unsigned char i, unsigned short counter, int32 fudge) {
   unsigned short tm = timer_get_interval();
   uint32 ntp = i * NTP_PER_INT + counter * NTPPC(tm);
-#ifdef FRACTIONAL_COMP
+#ifdef SAWTOOTH_COMP
   ntp -= NTPPADJ(tm) * tickadj_accum;
 #endif
   ntp += fudge;
@@ -77,7 +77,7 @@ uint32 make_ntp(unsigned char i, unsigned short counter, int32 fudge) {
 uint32 make_ntp_carry(unsigned char i, unsigned short counter, int32 fudge, char *add_sec) {
   unsigned short tm = timer_get_interval();
   uint32 ntp = i * NTP_PER_INT + counter * NTPPC(tm);
-#ifdef FRACTIONAL_COMP
+#ifdef SAWTOOTH_COMP
   ntp -= NTPPADJ(tm) * tickadj_accum;
 #endif
   uint32 ntp_augmented = ntp + fudge;
