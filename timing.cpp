@@ -354,34 +354,26 @@ void pll_run() {
     ppschange_history[0] = ppschange;
     ppschange_avg += (ppschange + 4) / 8;
 
-    debug("PPS change raw: "); debug_long(ppschange); debug("\n");
-    debug("PPS change avg: "); debug_long(ppschange_avg); debug("\n");
     ppschange_int += (ppschange_avg + 1)/ 2 + (ppschange + 1)/ 2;
-    debug("PPS change int: "); debug_long(ppschange_int); debug("\n");
+    debug("Int: "); debug_long(ppschange_int); debug("\n");
     if (ppschange_int < -PLL_RATE_DIV) {
       if (ppschange_int < -PLL_SKEW_MAX * PLL_RATE_DIV) {
-        // debug("Speed ++\n");
         clocks -= PLL_SKEW_MAX;
         ppschange_int += PLL_RATE_DIV * PLL_SKEW_MAX;
         ppschange_int /= 2;
       } else {
-        // debug("Speed +\n");
         clocks += ppschange_int / PLL_RATE_DIV;
         ppschange_int -= PLL_RATE_DIV * (ppschange_int / PLL_RATE_DIV);
       }
     } else if (ppschange_int > PLL_RATE_DIV) {
       if (ppschange_int > PLL_SKEW_MAX * PLL_RATE_DIV) {
-        // debug("Speed --\n");
         clocks += PLL_SKEW_MAX;
         ppschange_int -= PLL_RATE_DIV * PLL_SKEW_MAX;
         ppschange_int /= 2;
       } else {
-        // debug("Speed -\n");
         clocks += ppschange_int / PLL_RATE_DIV;
         ppschange_int -= PLL_RATE_DIV * (ppschange_int / PLL_RATE_DIV);
       }
-    } else {
-      // debug("Speed =\n");
     }
   }
 
