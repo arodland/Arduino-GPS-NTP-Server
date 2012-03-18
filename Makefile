@@ -17,7 +17,7 @@ sim/%.o : %.cpp
 sim: timesim
 
 ARDUINO_DIR=/usr/share/arduino
-ARDUINO_LIB_PATH=$(ARDUINO_DIR)/libraries .
+ARDUINO_LIB_PATH=$(ARDUINO_DIR)/libraries lib
 ARDUINO_LIBS=Ethernet/utility Ethernet ArduinoEthernet/EthernetDHCP/utility ArduinoEthernet/EthernetDHCP OneWire SPI DallasTemperature
 AVR_TOOLS_PATH=/usr/bin
 TARGET=ntpserver
