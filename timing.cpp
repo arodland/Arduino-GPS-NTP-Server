@@ -27,7 +27,7 @@ void time_set_date(unsigned int week, uint32 gps_tow, int offset) {
   }
 }
 
-#define PLL_FUDGE_NS -15000
+#define PLL_FUDGE_NS 0 //-15000
 const uint32 PLL_OFFSET_NS = 15625000L - PLL_FUDGE_NS;
 #define PLL_OFFSET_NTP 0x4000000
 #define NTP_FUDGE_RX_US (-50)
@@ -167,7 +167,21 @@ void timer_int() {
     second_int();
   }
 #ifndef SIMULATE
-  digitalWrite(13, (ints == 0) ? 1 : 0);
+  switch (ints) {
+    case (INT_PER_SEC - 1):
+      /* Drive PPS low 1/64 sec after int 0 */
+      OCR4B = OCR4A / 2;
+      TCCR4A = _BV(COM4B1);
+      break;
+    case 0:
+      PORTB |= _BV(PORTB7); /* Turn on LED */
+      break;
+    case 3:
+      /* Drive PPS high 1/64 sec after int 4 */
+      TCCR4A = _BV(COM4B1) | _BV(COM4B0);
+      PORTB &= ~_BV(PORTB7); /* Turn off the LED */
+      break;
+  }
 #endif
   tickadj_run();
 
@@ -338,6 +352,9 @@ void pll_run() {
       (int32)lasthardslew * 31250000L;
     /* 62.5 ns per clock */
     clocks = (ppschange * 2) / 125;
+#ifdef TEMPCORR
+    clocks -= tempprobe_corr;
+#endif
     if (startup) startup--;
   } else if (!hardslew) {
     /* The ideal factor for last_slew_rate here is 62.5 (1000 / 16), so the

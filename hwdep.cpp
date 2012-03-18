@@ -69,7 +69,9 @@ void timer_init() {
   pinMode(2, INPUT);
 
 //  TCCR4A = _BV(COM4A1) | _BV(COM4A0);
+//  TCCR4A = 0;
   TCCR4A = 0;
+  PORTH &= ~_BV(PORTH4);
 
   TCCR4B = _BV(CS41) | _BV(WGM42) | _BV(ICES4);
 

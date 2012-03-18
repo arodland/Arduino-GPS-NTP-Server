@@ -11,6 +11,8 @@ volatile extern char schedule_ints;
 
 void setup () {
   pinMode(13, OUTPUT);
+  pinMode(7, OUTPUT);
+  digitalWrite(7, LOW);
   for (int k = 0 ; k < 3 ; k++) {
     digitalWrite(13, HIGH);
     delay(250);
