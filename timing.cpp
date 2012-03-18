@@ -27,11 +27,7 @@ void time_set_date(unsigned int week, uint32 gps_tow, int offset) {
   }
 }
 
-#define PLL_FUDGE_NS 0 //-15000
 const uint32 PLL_OFFSET_NS = 15625000L - PLL_FUDGE_NS;
-#define PLL_OFFSET_NTP 0x4000000
-#define NTP_FUDGE_RX_US (-50)
-#define NTP_FUDGE_TX_US 950 
 extern const int32 NTP_FUDGE_RX = PLL_OFFSET_NTP + (NTP_FUDGE_RX_US * 429497) / 100;
 extern const int32 NTP_FUDGE_TX = PLL_OFFSET_NTP + (NTP_FUDGE_TX_US * 429497) / 100;
 
@@ -279,12 +275,6 @@ static int32 slew_accum = 0;
 static char startup = 2;
 
 static short clocks = 0;
-
-#define PLL_SLEW_DIV 1024L
-#define PLL_SLEW_MAX 8192L
-#define PLL_SLEW_SLOW_ZONE 10
-#define PLL_RATE_DIV 2048L
-#define PLL_SKEW_MAX 32
 
 void pll_run() {
   pps_int = 0;
