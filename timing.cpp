@@ -128,7 +128,7 @@ void tickadj_adjust() {
 }
 
 /* tickadj_upper is in units of "ticks per interrupt". Since the timer runs
- * at 2MHz, 1 tick = 500ns, and since there are 8 interrupts per second, 1
+ * at 2MHz, 1 tick = 500ns, and since there are 32 interrupts per second, 1
  * interrupt is nominally 62,500 ticks. One unit of tickadj_upper is thus
  * 1/62500 = 16ppm. tickadj_lower is in "sub-tick units"; 256 tickadj_lower
  * units equal one tickadj_upper unit. One tickadj_lower unit is thus 1/16 ppm.
