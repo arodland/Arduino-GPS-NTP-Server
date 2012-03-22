@@ -384,6 +384,11 @@ void pll_run() {
     }
   }
 
+#ifdef PLL_DAMP
+  slew_accum += ppschange_int / (PLL_SLEW_DIV / PLL_DAMP);
+  ppschange_int -= ppschange_int / (PLL_RATE_DIV / PLL_DAMP);
+#endif
+
   last_pps_filtered = pps_filtered;
   last_slew_rate = slew_rate;
   lasthardslew = hardslew;
