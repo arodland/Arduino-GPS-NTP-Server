@@ -1,5 +1,5 @@
 SIMCXX=g++
-SIMCXXFLAGS=-DF_CPU=16000000 -DSIMULATE -g
+SIMCXXFLAGS=-DF_CPU=16000000 -DSIMULATE -g -ffast-math -fno-exceptions
 
 SIMOBJS = $(patsubst %.cpp,sim/%.o,$(wildcard *.cpp))
 
