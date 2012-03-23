@@ -1,5 +1,6 @@
 #undef TEMPCORR
 #undef SAWTOOTH_COMP
+#define LCD
 
 #define PLL_FUDGE_NS 750
 #define PLL_OFFSET_NTP 0x4000000

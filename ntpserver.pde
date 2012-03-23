@@ -4,6 +4,7 @@
 #include "gps.h"
 #include "ethernet.h"
 #include "tempprobe.h"
+#include "lcd.h"
 
 volatile extern char pps_int;
 volatile extern char ether_int;
@@ -26,6 +27,9 @@ void setup () {
   ether_init();
 #ifdef TEMPCORR
   tempprobe_init();
+#endif
+#ifdef LCD
+  lcd_init();
 #endif
 }
 
