@@ -114,7 +114,6 @@ inline int gps_read() {
 }
 
 inline void gps_write(const char *data) {
-  Serial.print(data);
   GPSPORT.print(data);
 }
 

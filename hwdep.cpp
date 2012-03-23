@@ -1,5 +1,6 @@
 #include "hwdep.h"
 #include "gps.h"
+#include "lcd.h"
 
 volatile char pps_int = 1;
 volatile uint32 pps_ns;
@@ -48,6 +49,9 @@ void sim_clk() {
   gps_clk += 2;
   if (gps_clk >= GPS_CYCLES) {
     gps_clk -= GPS_CYCLES;
+    lcd_set_displaydate(2012, 7, 4, 12, 34, 56, -15);
+    lcd_set_gps_status(4);
+
     pps_ns = time_get_ns();
     pps_int = 1;
   }
