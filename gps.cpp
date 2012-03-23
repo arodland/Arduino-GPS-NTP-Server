@@ -1,5 +1,7 @@
+#include "config.h"
 #include "hwdep.h"
 #include "gps.h"
+#include "lcd.h"
 
 inline char to_hex(unsigned char val) {
   if (val > 10) {

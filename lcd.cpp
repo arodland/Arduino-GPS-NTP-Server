@@ -36,6 +36,7 @@ static char display_utc_offset[] = "+ 0";
 
 void lcd_set_displaydate(unsigned int year, unsigned int month, unsigned int day,
     unsigned int hour, unsigned int minute, unsigned int second, int utc_offset) {
+
   display_date[0] = '0' + (year / 1000);
   display_date[1] = '0' + ((year % 1000) / 100);
   display_date[2] = '0' + ((year % 100) / 10);
@@ -127,8 +128,8 @@ void lcd_init() {
   lcd_cursor(0, 13); lcd_write("UTC");
   lcd_cursor(1, 16); lcd_write("sec");
   lcd_cursor(2, 10); lcd_write("ns");
-  lcd_cursor(4, 0); lcd_write("PLL");
-  lcd_cursor(4, 15); lcd_write("Sats");
+  lcd_cursor(3, 0); lcd_write("PLL");
+  lcd_cursor(3, 15); lcd_write("Sats");
 }
 
 void lcd_draw() {
@@ -141,7 +142,7 @@ void lcd_draw() {
 
   lcd_cursor(2, 0);
   lcd_write(display_offset);
-  lcd_cursor(3, 0);
+  lcd_cursor(3, 4);
   lcd_write(display_freq);
 
   lcd_cursor(2, 13);
