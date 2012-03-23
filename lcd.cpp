@@ -48,6 +48,20 @@ void lcd_set_displaydate(unsigned int year, unsigned int month, unsigned int day
   display_date[8] = '0' + (day / 10);
   display_date[9] = '0' + (day % 10);
 
+  second ++;
+  if (second == 60) {
+    second = 0;
+    minute ++;
+    if (minute == 60) {
+      minute = 0;
+      hour ++;
+      if (hour == 24) {
+        hour = 0;
+        strcpy(display_date, "----------");
+      }
+    }
+  }
+
   display_time[0] = '0' + (hour / 10);
   display_time[1] = '0' + (hour % 10);
   
