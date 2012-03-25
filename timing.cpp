@@ -14,8 +14,17 @@ static unsigned char tickadj_lower = 0;
 static unsigned char tickadj_accum = 0;
 static unsigned char tickadj_extra = 0;
 
+static short pll_collect_phase = 0;
+static int32 pll_collect_count = 0L;
+
 static unsigned int gps_week = 0;
 static uint32 tow_sec_utc = 0;
+
+volatile extern char ints;
+volatile char pps_ints = 0;
+volatile unsigned short pps_timer = 0;
+volatile extern char pps_int;
+volatile uint32 pps_ns;
 
 void time_set_date(unsigned int week, uint32 gps_tow, int offset) {
   if ((int32)gps_tow + offset < 0) {
@@ -104,13 +113,13 @@ void time_get_ntp(uint32 *upper, uint32 *lower, int32 fudge) {
   *upper += add_sec;
 }
 
-int32 time_get_ns_capt() {
-  char i = ints;
-  unsigned short ctr = timer_get_capture();
-  if (ctr > timer_get_counter()) { /* Timer reset after capture */
-    i--;
+void time_get_ns_capt() {
+  pps_ints = ints;
+  pps_timer = timer_get_capture();
+  if (pps_timer > timer_get_counter()) { /* Timer reset after capture */
+    pps_ints --;
   }
-  return make_ns(i, ctr);
+  pps_ns = make_ns(pps_ints, pps_timer);
 }
 
 uint32 ns_to_ntp(uint32 ns) {
@@ -179,6 +188,8 @@ void timer_int() {
       break;
   }
 #endif
+  pll_collect_count += timer_get_interval();
+
   tickadj_run();
 
   schedule_ints++;
@@ -259,9 +270,6 @@ inline int32 median_filter(int32 history[5]) {
 
 
 
-volatile extern char pps_int;
-volatile extern uint32 pps_ns;
-volatile extern char ints;
 extern int tempprobe_corr;
 
 static int32 pps_ns_copy = 0;
@@ -269,12 +277,12 @@ static int32 pps_history[5] = { 0L, 0L, 0L, 0L, 0L };
 static int32 ppschange_history[4] = { 0L, 0L, 0L, 0L };
 static int32 last_pps_filtered = 0;
 static short last_slew_rate = 0;
-static int32 ppschange_int;
 static char lasthardslew = 0;
 static int32 slew_accum = 0;
-static char startup = 30;
 
 static short clocks = 0;
+static short clocks_dither = 0;
+static short cda = 0;
 
 void pll_run() {
   pps_int = 0;
@@ -305,10 +313,13 @@ void pll_run() {
   short slew_rate = 0;
   char hardslew = 0;
 
+  pll_collect_phase ++;
+
   if ((pps_ns_copy < -31250000L && pps_filtered < -31250000L) || (pps_ns_copy > 31250000L && pps_filtered > 31250000L)) {
     ints -= pps_ns_copy / 31250000L;
     hardslew = pps_ns_copy / 31250000L;
-    ppschange_int = 0;
+    pll_collect_phase = 0;
+    pll_collect_count = 0L - pps_timer;
     slew_accum = 0;
     clocks = 0;
   } else {
@@ -337,63 +348,42 @@ void pll_run() {
     }
   }
 
-  if (!hardslew && (lasthardslew || startup)) {
-    int32 ppschange = pps_ns_copy - pps_history[1] + 
-      (int32)lasthardslew * 31250000L;
-    /* 62.5 ns per clock */
-    clocks += (ppschange * 2) / 125 + last_slew_rate;
-#ifdef TEMPCORR
-    clocks -= tempprobe_corr;
-#endif
-    if (startup) startup--;
-  } else if (!hardslew) {
-    /* The ideal factor for last_slew_rate here is 62.5 (1000 / 16), so the
-     * choices are 62 and 63. 63 gives slightly faster lock-on, but carries a
-     * risk that the PLL will get stuck in a state where slew != 0, so we
-     * use 62 here.
-     */
-    int32 ppschange = pps_filtered - last_pps_filtered + (int32)last_slew_rate * 62;
-    int32 ppschange_avg = 0;
-    for (char i = 3 ; i ; i--) {
-      ppschange_history[i] = ppschange_history[i-1];
-      ppschange_avg += ppschange_history[i] / 4;
-    }
-    ppschange_history[0] = ppschange;
-    ppschange_avg += ppschange / 4;
-
-    ppschange_int += ppschange_avg / 2 + ppschange / 2;
-    debug("Int: "); debug_long(ppschange_int); debug("\n");
-    if (ppschange_int < -PLL_RATE_DIV) {
-      if (ppschange_int < -PLL_SKEW_MAX * PLL_RATE_DIV) {
-        clocks -= PLL_SKEW_MAX;
-        ppschange_int += PLL_RATE_DIV * PLL_SKEW_MAX;
-        ppschange_int /= 2;
-      } else {
-        clocks += ppschange_int / PLL_RATE_DIV;
-        ppschange_int -= PLL_RATE_DIV * (ppschange_int / PLL_RATE_DIV);
-      }
-    } else if (ppschange_int > PLL_RATE_DIV) {
-      if (ppschange_int > PLL_SKEW_MAX * PLL_RATE_DIV) {
-        clocks += PLL_SKEW_MAX;
-        ppschange_int -= PLL_RATE_DIV * PLL_SKEW_MAX;
-        ppschange_int /= 2;
-      } else {
-        clocks += ppschange_int / PLL_RATE_DIV;
-        ppschange_int -= PLL_RATE_DIV * (ppschange_int / PLL_RATE_DIV);
-      }
-    }
-  }
-
-#ifdef PLL_DAMP
-  slew_accum += ppschange_int / (PLL_SLEW_DIV / PLL_DAMP);
-  ppschange_int -= ppschange_int / (PLL_RATE_DIV / PLL_DAMP);
-#endif
-
   last_pps_filtered = pps_filtered;
   last_slew_rate = slew_rate;
   lasthardslew = hardslew;
 
-  debug("PLL: "); debug_int(clocks);
+  debug("Cp: "); debug_int(pll_collect_phase); debug("\n");
+  debug("Cc: "); debug_long(pll_collect_count); debug("\n");
+
+  if (pll_collect_phase == 64) {
+    pll_collect_count += pps_timer;
+    debug("PPSt: "); debug_int(pps_timer); debug("\n");
+    if (pps_ints < ints) {
+      pll_collect_count -= timer_get_interval();
+    }
+    int32 pll64 = (pll_collect_count - 128000000);
+    clocks = pll64 / 8;
+    clocks_dither = pll64 % 8;
+    if (clocks_dither < 0) {
+      clocks--;
+      clocks_dither += 8;
+    }
+
+    debug("64-second PLL: "); debug_long(pll64); debug("\n");
+    debug("Clocks = "); debug_int(clocks); debug(" + "); debug_int(clocks_dither); debug("/8\n");
+
+    pll_collect_phase = 0;
+    pll_collect_count = 0L - pps_timer;
+  }
+
+  cda += clocks_dither;
+  char freq_extra = 0;
+  if (cda >= 8) {
+    cda -= 8;
+    freq_extra = 1;
+  }
+
+  debug("PLL: "); debug_int(clocks + freq_extra);
   debug(" ");
   if (slew_rate >= 0) debug("+"); debug_int(slew_rate);
 #ifdef TEMPCORR
@@ -401,11 +391,11 @@ void pll_run() {
   if (tempprobe_corr >= 0) debug("+"); debug_int(tempprobe_corr);
 #endif
   debug(" = ");
-  debug_int(clocks + slew_rate + tempprobe_corr);
+  debug_int(clocks + freq_extra + slew_rate + tempprobe_corr);
   debug("\n");
 #ifdef TEMPCORR
   debug("Temp: "); debug_float(tempprobe_gettemp()); debug("\n");
 #endif
 
-  tickadj_set_clocks(clocks + slew_rate + tempprobe_corr);
+  tickadj_set_clocks(clocks + freq_extra + slew_rate + tempprobe_corr);
 }

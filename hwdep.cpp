@@ -1,8 +1,7 @@
 #include "hwdep.h"
 #include "gps.h"
 
-volatile char pps_int = 1;
-volatile uint32 pps_ns;
+char pps_int = 0;
 
 #ifdef SIMULATE
 
@@ -32,6 +31,7 @@ void gps_init() {
   return; /* XXX unimplemented */
 }
 #define GPS_CYCLES (32000000L - 2007L)
+//#define GPS_CYCLES (32000000L - 3L)
 
 static uint32 gps_clk = GPS_CYCLES / 64;
 
@@ -48,7 +48,8 @@ void sim_clk() {
   gps_clk += 2;
   if (gps_clk >= GPS_CYCLES) {
     gps_clk -= GPS_CYCLES;
-    pps_ns = time_get_ns();
+    timer.capture = timer.counter;
+    time_get_ns_capt();
     pps_int = 1;
   }
 }
@@ -93,7 +94,7 @@ ISR(TIMER4_OVF_vect) {
 }
 
 ISR(TIMER4_CAPT_vect) {
-  pps_ns = time_get_ns_capt();
+  time_get_ns_capt();
   pps_int = 1;
 }
 
