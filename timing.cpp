@@ -10,8 +10,8 @@ volatile /* static */ char ints = 0;
  */
 volatile char schedule_ints = 0;
 static signed char tickadj_upper = 0;
-static unsigned char tickadj_lower = 0;
-static unsigned char tickadj_accum = 0;
+static unsigned short tickadj_lower = 0;
+static unsigned short tickadj_accum = 0;
 static unsigned char tickadj_extra = 0;
 
 static short pll_collect_phase = 0;
@@ -139,18 +139,18 @@ void tickadj_adjust() {
 /* tickadj_upper is in units of "ticks per interrupt". Since the timer runs
  * at 2MHz, 1 tick = 500ns, and since there are 32 interrupts per second, 1
  * interrupt is nominally 62,500 ticks. One unit of tickadj_upper is thus
- * 1/62500 = 16ppm. tickadj_lower is in "sub-tick units"; 256 tickadj_lower
- * units equal one tickadj_upper unit. One tickadj_lower unit is thus 1/16 ppm.
+ * 1/62500 = 16ppm. tickadj_lower is in "sub-tick units"; 2048 tickadj_lower
+ * units equal one tickadj_upper unit. One tickadj_lower unit is thus 1/128 ppm.
  * The dithering is done simply by maintaining an accumulator and adding
  * tickadj_lower to it on every interrupt; whenever the accumulator overflows,
  * one extra tick (tickadj_extra) is added to the timer interval.
  */
 
 void tickadj_run() {
-  unsigned char old_accum = tickadj_accum;
   tickadj_accum += tickadj_lower;
-  if (tickadj_accum < old_accum) {
+  if (tickadj_accum >= 2048) {
     tickadj_extra = 1;
+    tickadj_accum -= 2048;
   } else {
     tickadj_extra = 0;
   }
@@ -195,7 +195,7 @@ void timer_int() {
   schedule_ints++;
 }
 
-void tickadj_set(signed char upper, unsigned char lower) {
+void tickadj_set(signed char upper, unsigned short lower) {
   tickadj_upper = upper;
   tickadj_lower = lower;
 //  debug("tickadj_upper = "); debug_int(tickadj_upper);
@@ -203,33 +203,16 @@ void tickadj_set(signed char upper, unsigned char lower) {
   tickadj_adjust();
 }
 
-void tickadj_set_clocks(signed short clocks) {
-  char negative = 0;
-//  debug("tickadj = "); debug_int(clocks); debug("\n");
-  union {
-    struct {
-      unsigned char lower;
-      signed char upper;
-    };
-    unsigned short whole;
-  } pun;
-  pun.whole = clocks;
-  tickadj_set(pun.upper, pun.lower);
-}
+void tickadj_set_clocks(int32 clocks) {
+  signed char upper = clocks / 2048;
+  unsigned short lower = clocks % 2048;
 
-/* Positive PPM will make the clock run fast, negative slow */
-void tickadj_set_ppm(signed short ppm) {
-  /* Negation is a shortcut for computing 1 / ((1M + ppm) / 1M) that's accurate
-   * out to a few hundred, which is all we want. From her on out the clock speed
-   * will actually be *divided* by (1000000 + ppm) / 10000000
-   */
-
-  if (ppm < -2047 || ppm > 2047) {
-    debug("time adjustment out of range!\n");
-  } else {
-    signed short clocks = -16 * ppm;
-    tickadj_set_clocks(clocks);
+  if (clocks < 0) {
+    upper --;
+    lower += 2048;
   }
+
+  tickadj_set(upper, lower);
 }
 
 inline int32 med_mean_filter(int32 history[5]) {
@@ -361,29 +344,15 @@ void pll_run() {
     if (pps_ints < ints) {
       pll_collect_count -= timer_get_interval();
     }
-    int32 pll64 = (pll_collect_count - 128000000);
-    clocks = pll64 / 8;
-    clocks_dither = pll64 % 8;
-    if (clocks_dither < 0) {
-      clocks--;
-      clocks_dither += 8;
-    }
+    clocks = (pll_collect_count - 128000000);
 
-    debug("64-second PLL: "); debug_long(pll64); debug("\n");
-    debug("Clocks = "); debug_int(clocks); debug(" + "); debug_int(clocks_dither); debug("/8\n");
+    debug("Clocks = "); debug_long(clocks); debug("\n");
 
     pll_collect_phase = 0;
     pll_collect_count = 0L - pps_timer;
   }
 
-  cda += clocks_dither;
-  char freq_extra = 0;
-  if (cda >= 8) {
-    cda -= 8;
-    freq_extra = 1;
-  }
-
-  debug("PLL: "); debug_int(clocks + freq_extra);
+  debug("PLL: "); debug_long(clocks);
   debug(" ");
   if (slew_rate >= 0) debug("+"); debug_int(slew_rate);
 #ifdef TEMPCORR
@@ -391,11 +360,11 @@ void pll_run() {
   if (tempprobe_corr >= 0) debug("+"); debug_int(tempprobe_corr);
 #endif
   debug(" = ");
-  debug_int(clocks + freq_extra + slew_rate + tempprobe_corr);
+  debug_int(clocks + slew_rate + tempprobe_corr);
   debug("\n");
 #ifdef TEMPCORR
   debug("Temp: "); debug_float(tempprobe_gettemp()); debug("\n");
 #endif
 
-  tickadj_set_clocks(clocks + freq_extra + slew_rate + tempprobe_corr);
+  tickadj_set_clocks(clocks + slew_rate + tempprobe_corr);
 }
