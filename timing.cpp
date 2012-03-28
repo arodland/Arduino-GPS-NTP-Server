@@ -40,11 +40,16 @@ const uint32 PLL_OFFSET_NS = 15625000L - PLL_FUDGE_NS;
 extern const int32 NTP_FUDGE_RX = PLL_OFFSET_NTP + (NTP_FUDGE_RX_US * 429497) / 100;
 extern const int32 NTP_FUDGE_TX = PLL_OFFSET_NTP + (NTP_FUDGE_TX_US * 429497) / 100;
 
+static inline uint32 sawtooth_ns(unsigned short tm) {
+  uint32 ns = (NSPC(tm) * tickadj_accum + 1024) >> 11;
+  return ns;
+}
+
 int32 make_ns(unsigned char i, unsigned short counter) {
   unsigned short tm = timer_get_interval();
   int32 ns = i * NS_PER_INT + counter * NSPC(tm);
 #ifdef SAWTOOTH_COMP
-  ns -= NSPADJ(tm) * tickadj_accum + NSPC(tm) * tickadj_extra;
+  ns -= sawtooth_ns(tm) + NSPC(tm) * tickadj_extra;
 #endif
   if (ns + PLL_OFFSET_NS > 1000000000L) {
     ns -= 1000000000L;
@@ -57,7 +62,7 @@ int32 make_ns_carry(unsigned char i, unsigned short counter, char *add_sec) {
   unsigned short tm = timer_get_interval();
   int32 ns = i * NS_PER_INT + counter * NSPC(tm);
 #ifdef SAWTOOTH_COMP
-  ns -= NSPADJ(tm) * tickadj_accum + NSPC(tm) * tickadj_extra;
+  ns -= sawtooth_ns(tm) + NSPC(tm) * tickadj_extra;
 #endif
   if (ns + PLL_OFFSET_NS > 1000000000L) {
     ns -= 1000000000L;
@@ -72,7 +77,7 @@ uint32 make_ntp(unsigned char i, unsigned short counter, int32 fudge) {
   unsigned short tm = timer_get_interval();
   uint32 ntp = i * NTP_PER_INT + counter * NTPPC(tm);
 #ifdef SAWTOOTH_COMP
-  ntp -= NTPPADJ(tm) * tickadj_accum + NTPPC(tm) * tickadj_extra;
+  ntp -= tickadj_accum + NTPPC(tm) * tickadj_extra;
 #endif
   ntp += fudge;
   return ntp;
@@ -82,7 +87,7 @@ uint32 make_ntp_carry(unsigned char i, unsigned short counter, int32 fudge, char
   unsigned short tm = timer_get_interval();
   uint32 ntp = i * NTP_PER_INT + counter * NTPPC(tm);
 #ifdef SAWTOOTH_COMP
-  ntp -= NTPPADJ(tm) * tickadj_accum + NTPPC(tm) * tickadj_extra;
+  ntp -= tickadj_accum + NTPPC(tm) * tickadj_extra;
 #endif
   uint32 ntp_augmented = ntp + fudge;
   *add_sec = ntp_augmented < ntp;

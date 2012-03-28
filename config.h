@@ -1,5 +1,5 @@
 #undef TEMPCORR
-#undef SAWTOOTH_COMP
+#define SAWTOOTH_COMP
 
 #define PLL_FUDGE_NS 750
 #define PLL_OFFSET_NTP 0x4000000
@@ -8,4 +8,4 @@
 
 #define PLL_SLEW_DIV 256L
 #define PLL_SLEW_MAX 32768L
-#define PLL_SLEW_SLOW_ZONE 16
+#define PLL_SLEW_SLOW_ZONE 0
