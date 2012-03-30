@@ -11,12 +11,21 @@ volatile /* static */ char ints = 0;
  */
 volatile char schedule_ints = 0;
 static signed char tickadj_upper = 0;
-static unsigned char tickadj_lower = 0;
-static unsigned char tickadj_accum = 0;
+static unsigned short tickadj_lower = 0;
+static unsigned short tickadj_accum = 0;
 static unsigned char tickadj_extra = 0;
+
+static short pll_collect_phase = 0;
+static int32 pll_collect_count = 0L;
 
 static unsigned int gps_week = 0;
 static uint32 tow_sec_utc = 0;
+
+volatile extern char ints;
+volatile char pps_ints = 0;
+volatile unsigned short pps_timer = 0;
+volatile extern char pps_int;
+volatile uint32 pps_ns;
 
 void time_set_date(unsigned int week, uint32 gps_tow, int offset) {
   if ((int32)gps_tow + offset < 0) {
@@ -32,11 +41,16 @@ const uint32 PLL_OFFSET_NS = 15625000L - PLL_FUDGE_NS;
 extern const int32 NTP_FUDGE_RX = PLL_OFFSET_NTP + (NTP_FUDGE_RX_US * 429497) / 100;
 extern const int32 NTP_FUDGE_TX = PLL_OFFSET_NTP + (NTP_FUDGE_TX_US * 429497) / 100;
 
+static inline uint32 sawtooth_ns(unsigned short tm) {
+  uint32 ns = (NSPC(tm) * tickadj_accum + 1024) >> 11;
+  return ns;
+}
+
 int32 make_ns(unsigned char i, unsigned short counter) {
   unsigned short tm = timer_get_interval();
   int32 ns = i * NS_PER_INT + counter * NSPC(tm);
 #ifdef SAWTOOTH_COMP
-  ns -= NSPADJ(tm) * tickadj_accum + NSPC(tm) * tickadj_extra;
+  ns -= sawtooth_ns(tm) + NSPC(tm) * tickadj_extra;
 #endif
   if (ns + PLL_OFFSET_NS > 1000000000L) {
     ns -= 1000000000L;
@@ -49,7 +63,7 @@ int32 make_ns_carry(unsigned char i, unsigned short counter, char *add_sec) {
   unsigned short tm = timer_get_interval();
   int32 ns = i * NS_PER_INT + counter * NSPC(tm);
 #ifdef SAWTOOTH_COMP
-  ns -= NSPADJ(tm) * tickadj_accum + NSPC(tm) * tickadj_extra;
+  ns -= sawtooth_ns(tm) + NSPC(tm) * tickadj_extra;
 #endif
   if (ns + PLL_OFFSET_NS > 1000000000L) {
     ns -= 1000000000L;
@@ -64,7 +78,7 @@ uint32 make_ntp(unsigned char i, unsigned short counter, int32 fudge) {
   unsigned short tm = timer_get_interval();
   uint32 ntp = i * NTP_PER_INT + counter * NTPPC(tm);
 #ifdef SAWTOOTH_COMP
-  ntp -= NTPPADJ(tm) * tickadj_accum + NTPPC(tm) * tickadj_extra;
+  ntp -= tickadj_accum + NTPPC(tm) * tickadj_extra;
 #endif
   ntp += fudge;
   return ntp;
@@ -74,7 +88,7 @@ uint32 make_ntp_carry(unsigned char i, unsigned short counter, int32 fudge, char
   unsigned short tm = timer_get_interval();
   uint32 ntp = i * NTP_PER_INT + counter * NTPPC(tm);
 #ifdef SAWTOOTH_COMP
-  ntp -= NTPPADJ(tm) * tickadj_accum + NTPPC(tm) * tickadj_extra;
+  ntp -= tickadj_accum + NTPPC(tm) * tickadj_extra;
 #endif
   uint32 ntp_augmented = ntp + fudge;
   *add_sec = ntp_augmented < ntp;
@@ -105,13 +119,13 @@ void time_get_ntp(uint32 *upper, uint32 *lower, int32 fudge) {
   *upper += add_sec;
 }
 
-int32 time_get_ns_capt() {
-  char i = ints;
-  unsigned short ctr = timer_get_capture();
-  if (ctr > timer_get_counter()) { /* Timer reset after capture */
-    i--;
+void time_get_ns_capt() {
+  pps_ints = ints;
+  pps_timer = timer_get_capture();
+  if (pps_timer > timer_get_counter()) { /* Timer reset after capture */
+    pps_ints --;
   }
-  return make_ns(i, ctr);
+  pps_ns = make_ns(pps_ints, pps_timer);
 }
 
 uint32 ns_to_ntp(uint32 ns) {
@@ -131,18 +145,18 @@ void tickadj_adjust() {
 /* tickadj_upper is in units of "ticks per interrupt". Since the timer runs
  * at 2MHz, 1 tick = 500ns, and since there are 32 interrupts per second, 1
  * interrupt is nominally 62,500 ticks. One unit of tickadj_upper is thus
- * 1/62500 = 16ppm. tickadj_lower is in "sub-tick units"; 256 tickadj_lower
- * units equal one tickadj_upper unit. One tickadj_lower unit is thus 1/16 ppm.
+ * 1/62500 = 16ppm. tickadj_lower is in "sub-tick units"; 2048 tickadj_lower
+ * units equal one tickadj_upper unit. One tickadj_lower unit is thus 1/128 ppm.
  * The dithering is done simply by maintaining an accumulator and adding
  * tickadj_lower to it on every interrupt; whenever the accumulator overflows,
  * one extra tick (tickadj_extra) is added to the timer interval.
  */
 
 void tickadj_run() {
-  unsigned char old_accum = tickadj_accum;
   tickadj_accum += tickadj_lower;
-  if (tickadj_accum < old_accum) {
+  if (tickadj_accum >= 2048) {
     tickadj_extra = 1;
+    tickadj_accum -= 2048;
   } else {
     tickadj_extra = 0;
   }
@@ -180,12 +194,14 @@ void timer_int() {
       break;
   }
 #endif
+  pll_collect_count += timer_get_interval();
+
   tickadj_run();
 
   schedule_ints++;
 }
 
-void tickadj_set(signed char upper, unsigned char lower) {
+void tickadj_set(signed char upper, unsigned short lower) {
   tickadj_upper = upper;
   tickadj_lower = lower;
 //  debug("tickadj_upper = "); debug_int(tickadj_upper);
@@ -193,33 +209,16 @@ void tickadj_set(signed char upper, unsigned char lower) {
   tickadj_adjust();
 }
 
-void tickadj_set_clocks(signed short clocks) {
-  char negative = 0;
-//  debug("tickadj = "); debug_int(clocks); debug("\n");
-  union {
-    struct {
-      unsigned char lower;
-      signed char upper;
-    };
-    unsigned short whole;
-  } pun;
-  pun.whole = clocks;
-  tickadj_set(pun.upper, pun.lower);
-}
+void tickadj_set_clocks(int32 clocks) {
+  signed char upper = clocks / 2048;
+  unsigned short lower = clocks % 2048;
 
-/* Positive PPM will make the clock run fast, negative slow */
-void tickadj_set_ppm(signed short ppm) {
-  /* Negation is a shortcut for computing 1 / ((1M + ppm) / 1M) that's accurate
-   * out to a few hundred, which is all we want. From her on out the clock speed
-   * will actually be *divided* by (1000000 + ppm) / 10000000
-   */
-
-  if (ppm < -2047 || ppm > 2047) {
-    debug("time adjustment out of range!\n");
-  } else {
-    signed short clocks = -16 * ppm;
-    tickadj_set_clocks(clocks);
+  if (clocks < 0) {
+    upper --;
+    lower += 2048;
   }
+
+  tickadj_set(upper, lower);
 }
 
 inline int32 med_mean_filter(int32 history[5]) {
@@ -260,9 +259,6 @@ inline int32 median_filter(int32 history[5]) {
 
 
 
-volatile extern char pps_int;
-volatile extern uint32 pps_ns;
-volatile extern char ints;
 extern int tempprobe_corr;
 
 static int32 pps_ns_copy = 0;
@@ -270,12 +266,12 @@ static int32 pps_history[5] = { 0L, 0L, 0L, 0L, 0L };
 static int32 ppschange_history[4] = { 0L, 0L, 0L, 0L };
 static int32 last_pps_filtered = 0;
 static short last_slew_rate = 0;
-static int32 ppschange_int;
 static char lasthardslew = 0;
 static int32 slew_accum = 0;
-static char startup = 30;
 
 static short clocks = 0;
+static short clocks_dither = 0;
+static short cda = 0;
 
 void pll_run() {
   pps_int = 0;
@@ -306,10 +302,13 @@ void pll_run() {
   short slew_rate = 0;
   char hardslew = 0;
 
+  pll_collect_phase ++;
+
   if ((pps_ns_copy < -31250000L && pps_filtered < -31250000L) || (pps_ns_copy > 31250000L && pps_filtered > 31250000L)) {
     ints -= pps_ns_copy / 31250000L;
     hardslew = pps_ns_copy / 31250000L;
-    ppschange_int = 0;
+    pll_collect_phase = 0;
+    pll_collect_count = 0L - pps_timer;
     slew_accum = 0;
     clocks = 0;
   } else {
@@ -338,63 +337,28 @@ void pll_run() {
     }
   }
 
-  if (!hardslew && (lasthardslew || startup)) {
-    int32 ppschange = pps_ns_copy - pps_history[1] + 
-      (int32)lasthardslew * 31250000L;
-    /* 62.5 ns per clock */
-    clocks += (ppschange * 2) / 125 + last_slew_rate;
-#ifdef TEMPCORR
-    clocks -= tempprobe_corr;
-#endif
-    if (startup) startup--;
-  } else if (!hardslew) {
-    /* The ideal factor for last_slew_rate here is 62.5 (1000 / 16), so the
-     * choices are 62 and 63. 63 gives slightly faster lock-on, but carries a
-     * risk that the PLL will get stuck in a state where slew != 0, so we
-     * use 62 here.
-     */
-    int32 ppschange = pps_filtered - last_pps_filtered + (int32)last_slew_rate * 62;
-    int32 ppschange_avg = 0;
-    for (char i = 3 ; i ; i--) {
-      ppschange_history[i] = ppschange_history[i-1];
-      ppschange_avg += ppschange_history[i] / 4;
-    }
-    ppschange_history[0] = ppschange;
-    ppschange_avg += ppschange / 4;
-
-    ppschange_int += ppschange_avg / 2 + ppschange / 2;
-    debug("Int: "); debug_long(ppschange_int); debug("\n");
-    if (ppschange_int < -PLL_RATE_DIV) {
-      if (ppschange_int < -PLL_SKEW_MAX * PLL_RATE_DIV) {
-        clocks -= PLL_SKEW_MAX;
-        ppschange_int += PLL_RATE_DIV * PLL_SKEW_MAX;
-        ppschange_int /= 2;
-      } else {
-        clocks += ppschange_int / PLL_RATE_DIV;
-        ppschange_int -= PLL_RATE_DIV * (ppschange_int / PLL_RATE_DIV);
-      }
-    } else if (ppschange_int > PLL_RATE_DIV) {
-      if (ppschange_int > PLL_SKEW_MAX * PLL_RATE_DIV) {
-        clocks += PLL_SKEW_MAX;
-        ppschange_int -= PLL_RATE_DIV * PLL_SKEW_MAX;
-        ppschange_int /= 2;
-      } else {
-        clocks += ppschange_int / PLL_RATE_DIV;
-        ppschange_int -= PLL_RATE_DIV * (ppschange_int / PLL_RATE_DIV);
-      }
-    }
-  }
-
-#ifdef PLL_DAMP
-  slew_accum += ppschange_int / (PLL_SLEW_DIV / PLL_DAMP);
-  ppschange_int -= ppschange_int / (PLL_RATE_DIV / PLL_DAMP);
-#endif
-
   last_pps_filtered = pps_filtered;
   last_slew_rate = slew_rate;
   lasthardslew = hardslew;
 
-  debug("PLL: "); debug_int(clocks);
+  debug("Cp: "); debug_int(pll_collect_phase); debug("\n");
+  debug("Cc: "); debug_long(pll_collect_count); debug("\n");
+
+  if (pll_collect_phase == 64) {
+    pll_collect_count += pps_timer;
+    debug("PPSt: "); debug_int(pps_timer); debug("\n");
+    if (pps_ints < ints) {
+      pll_collect_count -= timer_get_interval();
+    }
+    clocks = (pll_collect_count - 128000000);
+
+    debug("Clocks = "); debug_long(clocks); debug("\n");
+
+    pll_collect_phase = 0;
+    pll_collect_count = 0L - pps_timer;
+  }
+
+  debug("PLL: "); debug_long(clocks);
   debug(" ");
   if (slew_rate >= 0) debug("+"); debug_int(slew_rate);
 #ifdef TEMPCORR
