@@ -293,7 +293,7 @@ void pll_run() {
   pps_history[1] = pps_history[0];
   pps_history[0] = pps_ns_copy;
 
-  int32 pps_filtered = med_mean_filter(pps_history);
+  int32 pps_filtered = median_filter(pps_history);
 //  int32 pps_filtered = median_filter(pps_history);
   debug(" ("); debug_long(pps_filtered); debug(")");
   debug("\n");
