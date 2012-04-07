@@ -1,6 +1,7 @@
 #include "config.h"
 #include "hwdep.h"
 #include "tempprobe.h"
+#include "lcd.h"
 
 #include <string.h>
 
@@ -371,5 +372,9 @@ void pll_run() {
   debug("Temp: "); debug_float(tempprobe_gettemp()); debug("\n");
 #endif
 
+#ifdef LCD
+  lcd_set_pll_status(pps_ns_copy, clocks + slew_rate + tempprobe_corr);
+  lcd_draw();
+#endif
   tickadj_set_clocks(clocks + slew_rate + tempprobe_corr);
 }

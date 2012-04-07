@@ -1,5 +1,7 @@
+#include "config.h"
 #include "hwdep.h"
 #include "gps.h"
+#include "lcd.h"
 
 inline char to_hex(unsigned char val) {
   if (val > 10) {
@@ -329,6 +331,10 @@ void gps_geodetic_message() {
   int utc_offset = gps_utc_offset(hour, minute, second, gps_tow_sec);
 
   time_set_date(gps_week, gps_tow_sec, utc_offset);
+#ifdef LCD
+  lcd_set_displaydate(year, month, day, hour, minute, second, utc_offset);
+  lcd_set_gps_status(numsvs);
+#endif
 }
 
 void gps_ack_message() {

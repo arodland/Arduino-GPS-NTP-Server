@@ -1,5 +1,6 @@
 #include "hwdep.h"
 #include "gps.h"
+#include "lcd.h"
 
 char pps_int = 0;
 
@@ -48,6 +49,11 @@ void sim_clk() {
   gps_clk += 2;
   if (gps_clk >= GPS_CYCLES) {
     gps_clk -= GPS_CYCLES;
+#ifdef LCD
+    lcd_set_displaydate(2012, 7, 4, 12, 34, 56, -15);
+    lcd_set_gps_status(4);
+#endif
+
     timer.capture = timer.counter;
     time_get_ns_capt();
     pps_int = 1;
