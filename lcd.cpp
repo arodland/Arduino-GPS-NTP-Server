@@ -83,10 +83,16 @@ void lcd_set_displaydate(unsigned int year, unsigned int month, unsigned int day
 }
 
 static char gps_status[] = "       ";
-static int gps_numsvs = 0;
+static char gps_numsvs[] = "  ";
 
 void lcd_set_gps_status(unsigned int numsvs) {
-  gps_numsvs = numsvs;
+  if (numsvs >= 10) {
+    gps_numsvs[0] = '1';
+    gps_numsvs[1] = '0' + (numsvs % 10);
+  } else {
+    gps_numsvs[0] = '0' + numsvs;
+    gps_numsvs[1] = ' ';
+  }
   if (numsvs >= 3) {
     strcpy(gps_status, "GPS OK");
   } else {
@@ -97,11 +103,12 @@ void lcd_set_gps_status(unsigned int numsvs) {
 static char display_offset[] = "+000000000";
 static char display_freq[] = "+00000";
 
-void lcd_set_pll_status(int32 offset, short freq) {
+void lcd_set_pll_status(int32 offset, int32 freq) {
+  char sign;
   if (offset >= 0) {
-    display_offset[0] = '+';
+    sign = '+';
   } else {
-    display_offset[0] = '-';
+    sign = '-';
     offset = 0 - offset;
   }
 
@@ -109,15 +116,17 @@ void lcd_set_pll_status(int32 offset, short freq) {
     if (offset) {
       display_offset[i] = '0' + (offset % 10);
     } else {
-      display_offset[i] = ' ';
+      display_offset[i] = sign;
+      sign = ' ';
     }
     offset /= 10;
   }
+  display_offset[0] = sign;
 
   if (freq >= 0) {
-    display_freq[0] = '+';
+    sign = '+';
   } else {
-    display_freq[0] = '-';
+    sign = '-';
     freq = 0 - freq;
   }
 
@@ -125,10 +134,12 @@ void lcd_set_pll_status(int32 offset, short freq) {
     if (freq) {
       display_freq[i] = '0' + (freq % 10);
     } else {
-      display_freq[i] = ' ';
+      display_freq[i] = sign;
+      sign = ' ';
     }
     freq /= 10;
   }
+  display_freq[0] = sign;
 }
 
 #ifndef SIMULATE
