@@ -296,6 +296,11 @@ void pll_run() {
   int32 pps_filtered = median_filter(pps_history);
 //  int32 pps_filtered = median_filter(pps_history);
   debug(" ("); debug_long(pps_filtered); debug(")");
+
+#ifdef SAWTOOTH_COMP
+  debug(" Sawtooth: "); debug_long(sawtooth_ns(timer_get_interval()));
+#endif
+
   debug("\n");
 
   short slew_rate = 0;
@@ -338,8 +343,10 @@ void pll_run() {
   last_slew_rate = slew_rate;
   lasthardslew = hardslew;
 
+#if 0
   debug("Cp: "); debug_int(pll_collect_phase); debug("\n");
   debug("Cc: "); debug_long(pll_collect_count); debug("\n");
+#endif
 
   if (pll_collect_phase == 64) {
     pll_collect_count += pps_timer;
