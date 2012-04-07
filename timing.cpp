@@ -317,12 +317,10 @@ void pll_run() {
   if (slew_accum >= PLL_SLEW_DIV || slew_accum <= -PLL_SLEW_DIV) {
     if (slew_accum >= (PLL_SLEW_MAX + PLL_SLEW_SLOW_ZONE / 2) * PLL_SLEW_DIV) {
       slew_rate = PLL_SLEW_MAX;
-      slew_accum -= PLL_SLEW_MAX * PLL_SLEW_DIV;
-      slew_accum /= 2;
+      slew_accum = 0L - PLL_SLEW_MAX * PLL_SLEW_DIV;
     } else if (slew_accum <= -(PLL_SLEW_MAX + PLL_SLEW_SLOW_ZONE / 2) * PLL_SLEW_DIV) {
       slew_rate = -PLL_SLEW_MAX;
-      slew_accum += PLL_SLEW_MAX * PLL_SLEW_DIV;
-      slew_accum /= 2;
+      slew_accum = PLL_SLEW_MAX * PLL_SLEW_DIV;
     } else {
       slew_rate = slew_accum / PLL_SLEW_DIV;
       if (slew_rate > PLL_SLEW_SLOW_ZONE) {
