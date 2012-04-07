@@ -14,8 +14,10 @@ static unsigned short tickadj_lower = 0;
 static unsigned short tickadj_accum = 0;
 static unsigned char tickadj_extra = 0;
 
-static short pll_collect_phase = 0;
-static int32 pll_collect_count = 0L;
+static short fll_slot = 0;
+static short fll_valid = 0;
+static uint32 fll_history[64];
+static uint32 fll_counter = 0;
 
 static unsigned int gps_week = 0;
 static uint32 tow_sec_utc = 0;
@@ -193,7 +195,7 @@ void timer_int() {
       break;
   }
 #endif
-  pll_collect_count += timer_get_interval();
+  fll_counter += timer_get_interval();
 
   tickadj_run();
 
@@ -306,16 +308,28 @@ void pll_run() {
   short slew_rate = 0;
   char hardslew = 0;
 
-  pll_collect_phase ++;
-
   if ((pps_ns_copy < -31250000L && pps_filtered < -31250000L) || (pps_ns_copy > 31250000L && pps_filtered > 31250000L)) {
     ints -= pps_ns_copy / 31250000L;
     hardslew = pps_ns_copy / 31250000L;
-    pll_collect_phase = 0;
-    pll_collect_count = 0L - pps_timer;
+    fll_slot = 0;
+    fll_valid = 0;
+    fll_counter = 0;
     slew_accum = 0;
     clocks = 0;
   } else {
+    uint32 fll = fll_counter + pps_timer;
+    if (pps_ints < ints) {
+      fll -= timer_get_interval();
+    }
+
+    if (fll_valid < 64) {
+      fll_valid ++;
+    } else {
+      clocks = (fll - fll_history[fll_slot]) - 128000000L;
+    }
+    fll_history[fll_slot] = fll;
+    fll_slot = (fll_slot + 1) % 64;
+
     slew_accum += pps_filtered;
   }
 
@@ -342,25 +356,6 @@ void pll_run() {
   last_pps_filtered = pps_filtered;
   last_slew_rate = slew_rate;
   lasthardslew = hardslew;
-
-#if 0
-  debug("Cp: "); debug_int(pll_collect_phase); debug("\n");
-  debug("Cc: "); debug_long(pll_collect_count); debug("\n");
-#endif
-
-  if (pll_collect_phase == 64) {
-    pll_collect_count += pps_timer;
-    debug("PPSt: "); debug_int(pps_timer); debug("\n");
-    if (pps_ints < ints) {
-      pll_collect_count -= timer_get_interval();
-    }
-    clocks = (pll_collect_count - 128000000);
-
-    debug("Clocks = "); debug_long(clocks); debug("\n");
-
-    pll_collect_phase = 0;
-    pll_collect_count = 0L - pps_timer;
-  }
 
   debug("PLL: "); debug_long(clocks);
   debug(" ");
