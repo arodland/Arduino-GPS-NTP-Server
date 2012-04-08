@@ -15,7 +15,7 @@ extern void lcd_set_displaydate(unsigned int year, unsigned int month, unsigned 
 
 extern void lcd_set_gps_status(unsigned int numsvs);
 
-extern void lcd_set_pll_status(int32 offset, short freq);
+extern void lcd_set_pll_status(int32 offset, int32 freq);
 
 void lcd_draw();
 
