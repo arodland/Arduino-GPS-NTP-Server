@@ -22,14 +22,17 @@ void setup () {
   }
 
   Serial.begin(115200);
+  Serial.print("Booting...\n");
   timer_init();
   gps_init();
-  ether_init();
-#ifdef TEMPCORR
-  tempprobe_init();
-#endif
 #ifdef LCD
   lcd_init();
+#endif
+  Serial.print("Starting Ethernet...\n");
+  ether_init();
+  Serial.print("Ethernet OK\n");
+#ifdef TEMPCORR
+  tempprobe_init();
 #endif
 }
 
@@ -46,7 +49,9 @@ void loop () {
 #ifdef TEMPCORR
       tempprobe_run();
 #endif
+#ifdef DHCP
       ether_dhcp_poll();
+#endif
       schedule_ints--;
     }
   }
