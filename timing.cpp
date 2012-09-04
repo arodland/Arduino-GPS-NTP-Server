@@ -182,16 +182,16 @@ void timer_int() {
 #ifndef SIMULATE
   switch (ints) {
     case (INT_PER_SEC - 1):
-      /* Drive PPS low 1/64 sec after int 0 */
+      /* Drive PPS high 1/64 sec after int 0 */
       OCR4B = OCR4A / 2;
-      TCCR4A = _BV(COM4B1);
+      TCCR4A = _BV(COM4B1) | _BV(COM4B0);
       break;
     case 0:
       PORTB |= _BV(PORTB7); /* Turn on LED */
       break;
     case 3:
-      /* Drive PPS high 1/64 sec after int 4 */
-      TCCR4A = _BV(COM4B1) | _BV(COM4B0);
+      /* Drive PPS low 1/64 sec after int 4 */
+      TCCR4A = _BV(COM4B1);
       PORTB &= ~_BV(PORTB7); /* Turn off the LED */
       break;
   }
