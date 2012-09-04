@@ -324,6 +324,9 @@ void pll_run() {
     }
 
     if (fll_valid < 64) {
+      if (fll_valid > 1) {
+        clocks = ((fll - fll_history[(fll_slot - 1) % 64]) - 2000000L) * 64;
+      }
       fll_valid ++;
     } else {
       clocks = (fll - fll_history[fll_slot]) - 128000000L;
