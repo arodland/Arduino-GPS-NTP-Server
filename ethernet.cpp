@@ -1,4 +1,5 @@
 #include "hwdep.h"
+#include "config.h"
 #include "ethernet.h"
 
 volatile char ether_int = 0;
@@ -19,6 +20,7 @@ void ether_poll() {
 #include "w5100.h"
 
 unsigned char mac[] = { 0x9a, 0xa2, 0xda, 0x00, 0x32, 0xd4 };
+unsigned char ip[] = { 192, 168, 1, 201 };
 
 Server debugserver = Server(1000);
 Client debugclient = Client(MAX_SOCK_NUM);
@@ -48,7 +50,16 @@ void ether_init() {
   pinMode(2, INPUT);
   attachInterrupt(0, ether_interrupt, FALLING);
 
+#ifdef DHCP
+  debug("Starting DHCP...\n");
   EthernetDHCP.begin(mac);
+#else
+  Ethernet.begin(mac, ip);
+#endif
+  debug("IP: ");
+  debug_int((unsigned int)ip[0]); debug("."); debug_int((unsigned int)ip[1]); debug(".");
+  debug_int((unsigned int)ip[2]); debug("."); debug_int((unsigned int)ip[3]); debug("\n");
+
   W5100.writeIMR(0x0F);
   Udp.begin(123);
   debugserver.begin();
@@ -115,7 +126,7 @@ void do_ntp_request(unsigned char *buf, unsigned int len,
     Udp.sendPacket(reply, 48, ip, port);
     debug("NTP\n");
   } else {
-    debug("NTP unknown packet type");
+    debug("NTP unknown packet type\n");
   }
 }
 
