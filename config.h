@@ -1,6 +1,7 @@
 #undef TEMPCORR
 #undef SAWTOOTH_COMP
 #define LCD
+#undef DHCP
 
 #ifndef SAWTOOTH_COMP
 #define PLL_FUDGE_NS 723

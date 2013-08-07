@@ -19,6 +19,7 @@ static short fll_slot = 0;
 static short fll_valid = 0;
 static uint32 fll_history[64];
 static uint32 fll_counter = 0;
+static short ticks_last_sec = 0;
 
 static unsigned int gps_week = 0;
 static uint32 tow_sec_utc = 0;
@@ -181,7 +182,7 @@ void timer_int() {
   }
 #ifndef SIMULATE
   switch (ints) {
-    case (INT_PER_SEC - 1):
+    case 1:
       /* Drive PPS high 1/64 sec after int 0 */
       OCR4B = OCR4A / 2;
       TCCR4A = _BV(COM4B1) | _BV(COM4B0);
@@ -197,6 +198,7 @@ void timer_int() {
   }
 #endif
   fll_counter += timer_get_interval();
+  ticks_last_sec += timer_get_interval() - 62500;
 
   tickadj_run();
 
@@ -290,13 +292,15 @@ void pll_run() {
 
   debug("PPS: "); debug_long(pps_ns_copy);
 
-  pps_history[4] = pps_history[3];
+/*  pps_history[4] = pps_history[3];
   pps_history[3] = pps_history[2];
   pps_history[2] = pps_history[1];
   pps_history[1] = pps_history[0];
-  pps_history[0] = pps_ns_copy;
+  pps_history[0] = pps_ns_copy; */
 
-  int32 pps_filtered = median_filter(pps_history);
+  int32 pps_filtered = pps_ns_copy;
+
+//  int32 pps_filtered = median_filter(pps_history);
 //  int32 pps_filtered = median_filter(pps_history);
   debug(" ("); debug_long(pps_filtered); debug(")");
 
@@ -374,6 +378,10 @@ void pll_run() {
 #ifdef TEMPCORR
   debug("Temp: "); debug_float(tempprobe_gettemp()); debug("\n");
 #endif
+  debug("TLS: ");
+  debug_int(ticks_last_sec);
+  debug("\n");
+  ticks_last_sec = 0;
 
 #ifdef LCD
   lcd_set_pll_status(pps_ns_copy, clocks + slew_rate + tempprobe_corr);

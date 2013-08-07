@@ -31,7 +31,7 @@ extern void timer_int();
 void gps_init() {
   return; /* XXX unimplemented */
 }
-#define GPS_CYCLES (32000000L - 2007L)
+#define GPS_CYCLES (32000000L + 3L)
 //#define GPS_CYCLES (32000000L - 3L)
 
 static uint32 gps_clk = GPS_CYCLES / 64;
