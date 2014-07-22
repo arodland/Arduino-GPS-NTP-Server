@@ -108,10 +108,15 @@ void do_ntp_request(unsigned char *buf, unsigned int len,
     reply[37] = (recv_ts_lower >> 16) & 0xff;
     reply[38] = (recv_ts_lower >> 8) & 0xff;
     reply[39] = (recv_ts_lower) & 0xff;
-    /* Copy top half of receive timestamp into reference timestamp --
-     * we update clock every second :)
-     */
-    memcpy(reply + 16, reply + 32, 4);
+    /* Reftime is the last time we updated the PLL. */
+    reply[16] = (reftime_upper >> 24) & 0xff;
+    reply[17] = (reftime_upper >> 16) & 0xff;
+    reply[18] = (reftime_upper >> 8) & 0xff;
+    reply[19] = (reftime_upper) & 0xff;
+    reply[20] = (reftime_lower >> 24) & 0xff;
+    reply[21] = (reftime_lower >> 16) & 0xff;
+    reply[22] = (reftime_lower >> 8) & 0xff;
+    reply[23] = (reftime_lower) & 0xff;
 
     time_get_ntp(&tx_ts_upper, &tx_ts_lower, NTP_FUDGE_TX);
     /* Copy tx timestamp into packet */

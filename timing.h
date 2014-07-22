@@ -9,6 +9,8 @@ extern void time_get_ns_capt();
 extern void tickadj_set_ppm(signed short ppm);
 extern void tickadj_set_clocks(int32 clocks);
 extern void pll_run();
+extern uint32 reftime_upper, reftime_lower;
+extern void update_reftime();
 
 extern void time_set_date(unsigned int gps_week, uint32 gps_tow_sec, int offset);
 

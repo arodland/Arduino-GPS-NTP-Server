@@ -29,6 +29,7 @@ volatile char pps_ints = 0;
 volatile unsigned short pps_timer = 0;
 volatile extern char pps_int;
 volatile uint32 pps_ns;
+uint32 reftime_upper = 0, reftime_lower = 0;
 
 void time_set_date(unsigned int week, uint32 gps_tow, int offset) {
   if ((int32)gps_tow + offset < 0) {
@@ -112,9 +113,9 @@ uint32 time_get_ntp_lower(int32 fudge) {
 
 void time_get_ntp(uint32 *upper, uint32 *lower, int32 fudge) {
   char add_sec;
-  *upper = 2524953600UL; /* GPS epoch - NTP epoch */
-  *upper += gps_week * 604800UL; /* 1 week */
-  *upper += tow_sec_utc;
+  *upper = 2524953600UL  /* GPS epoch - NTP epoch */
+    + 604800UL * gps_week /* 1 week */
+    + tow_sec_utc;
 
   char i = ints + timer_get_pending();
   unsigned short ctr = timer_get_counter();
@@ -388,4 +389,6 @@ void pll_run() {
   lcd_draw();
 #endif
   tickadj_set_clocks(clocks + slew_rate + tempprobe_corr);
+
+  time_get_ntp(&reftime_upper, &reftime_lower, 0);
 }
